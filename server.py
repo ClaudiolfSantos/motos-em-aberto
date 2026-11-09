@@ -94,7 +94,11 @@ def parse_semver(v_str):
 
 def verificar_versao_github():
     url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-    req = urllib.request.Request(url, headers={'User-Agent': 'MotosEmAberto-Updater'})
+    headers = {'User-Agent': 'MotosEmAberto-Updater'}
+    token = os.environ.get('GITHUB_TOKEN')
+    if token:
+        headers['Authorization'] = f'Bearer {token}'
+    req = urllib.request.Request(url, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=5) as r:
             data = json.loads(r.read().decode('utf-8'))

@@ -14,6 +14,19 @@ namespace MotosEmAberto
         {
             try
             {
+                // Modo de teste automatizado CI/CD (Smoke Test)
+                foreach (var arg in e.Args)
+                {
+                    if (arg.Equals("--smoke-test", StringComparison.OrdinalIgnoreCase))
+                    {
+                        DatabaseService.EnsureDatabaseInitialized();
+                        var filtros = DatabaseService.GetFiltros();
+                        Console.WriteLine("✔ Smoke test executado com sucesso! Lojas mapeadas: " + filtros["lojas"]);
+                        Shutdown(0);
+                        return;
+                    }
+                }
+
                 // 1. Inicializa o banco de dados no AppData local do usuário
                 DatabaseService.EnsureDatabaseInitialized();
 

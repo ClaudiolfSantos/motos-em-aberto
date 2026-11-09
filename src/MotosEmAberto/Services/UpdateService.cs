@@ -27,7 +27,14 @@ namespace MotosEmAberto.Services
 
             try
             {
-                var response = await _httpClient.GetAsync(url);
+                using var req = new HttpRequestMessage(HttpMethod.Get, url);
+                string? token = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
+                if (!string.IsNullOrEmpty(token))
+                {
+                    req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+
+                var response = await _httpClient.SendAsync(req);
                 if (response.IsSuccessStatusCode)
                 {
                     string json = await response.Content.ReadAsStringAsync();
