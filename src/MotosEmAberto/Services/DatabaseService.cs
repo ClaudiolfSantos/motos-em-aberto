@@ -25,6 +25,11 @@ namespace MotosEmAberto.Services
                 if (File.Exists(seedDb))
                 {
                     File.Copy(seedDb, DatabasePath, true);
+                    try
+                    {
+                        File.SetAttributes(DatabasePath, FileAttributes.Normal);
+                    }
+                    catch { }
                 }
             }
         }

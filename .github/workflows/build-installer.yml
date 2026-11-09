@@ -104,7 +104,7 @@ jobs:
         run: |
           $exePath = Join-Path $env:INSTALLED_DIR "MotosEmAberto.exe"
           Write-Host "Testando motor do aplicativo instalado em $exePath ..."
-          $proc = Start-Process -FilePath $exePath -ArgumentList "--smoke-test" -PassThru
+          $proc = Start-Process -FilePath $exePath -ArgumentList "--smoke-test" -PassThru -NoNewWindow
           $finished = $proc.WaitForExit(15000)
           if (-not $finished) {
             Write-Warning "Processo nao finalizou em 15s. Encerrando forcadamente..."
