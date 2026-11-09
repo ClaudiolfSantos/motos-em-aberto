@@ -104,12 +104,12 @@ jobs:
         run: |
           $exePath = Join-Path $env:INSTALLED_DIR "MotosEmAberto.exe"
           Write-Host "Testando motor do aplicativo instalado em $exePath ..."
-          & "$exePath" --smoke-test
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "O motor do executavel falhou no smoke test com codigo: $LASTEXITCODE"
+          $proc = Start-Process -FilePath $exePath -ArgumentList "--smoke-test" -Wait -PassThru
+          if ($proc.ExitCode -ne 0) {
+            Write-Error "O motor do executavel falhou no smoke test com codigo: $($proc.ExitCode)"
             exit 1
           }
-          Write-Host "✔ Smoke test do executavel concluido com sucesso!"
+          Write-Host "✔ Smoke test do executavel concluido com sucesso (ExitCode: $($proc.ExitCode))!"
 
       - name: Smoke Test - Uninstall MSI Silently
         shell: pwsh
