@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Motos em Aberto — Motocar</title>
+  <link rel="icon" type="image/png" href="/logo/Motocar%20vermelha.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f8fafc;
+      color: #1e293b;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    @keyframes progress-stripe {
+      0% { background-position: 1rem 0; }
+      100% { background-position: 0 0; }
+    }
+    .animate-stripes {
+      background-image: linear-gradient(45deg, rgba(255,255,255,.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.2) 50%, rgba(255,255,255,.2) 75%, transparent 75%, transparent);
+      background-size: 1rem 1rem;
+      animation: progress-stripe 1s linear infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- TOPO: Barra de Filtros, Título e Logo Motocar -->
+  <header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
+    <div class="max-w-[1700px] mx-auto px-6 py-4">
+      
+      <!-- Linha Superior: Filtros à esquerda, Logo e Data à direita -->
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        
+        <!-- Bloco de Filtros estilo Power BI -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 max-w-3xl">
+          <!-- Loja -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Loja</label>
+            <select id="filtroLoja" onchange="aplicarFiltros()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none transition">
+              <option value="Todos">Todos</option>
+            </select>
+          </div>
+
+          <!-- Região -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Região</label>
+            <select id="filtroRegiao" onchange="aplicarFiltros()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none transition">
+              <option value="Todos">Todos</option>
+            </select>
+          </div>
+
+          <!-- Estado -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Estado</label>
+            <select id="filtroEstado" onchange="aplicarFiltros()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none transition">
+              <option value="Todos">Todos</option>
+            </select>
+          </div>
+
+          <!-- Tipo de Venda -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Tipo de venda</label>
+            <select id="filtroTipoVenda" onchange="aplicarFiltros()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none transition">
+              <option value="Todos">Todos</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Bloco Direito: Atualizado em + Logo Oficial Motocar + Botões de Ação -->
+        <div class="flex items-center gap-3">
+          
+          <!-- Versão do Sistema e Checagem de Atualização -->
+          <div class="flex items-center bg-slate-100 border border-slate-200 rounded-lg p-1 gap-1.5 shadow-sm">
+            <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-mono">v1.0.0</span>
+            <button onclick="verificarAtualizacao(true)" id="btnCheckUpdate" title="Checar se há nova versão no GitHub"
+                    class="text-[11px] font-semibold text-slate-600 hover:text-red-600 px-1.5 py-0.5 rounded transition flex items-center gap-1">
+              <svg id="iconCheckUpdate" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              <span>Checar Versão</span>
+            </button>
+          </div>
+
+          <div class="text-right">
+            <div class="text-[10px] font-bold tracking-widest text-slate-400 uppercase">ATUALIZADO</div>
+            <div id="dataAtualizacao" class="text-xs font-semibold text-slate-700">Carregando...</div>
+          </div>
+          
+          <img src="/logo/Motocar%20vermelha.png" alt="Motocar Logo" class="h-9 object-contain hover:scale-105 transition-transform" />
+
+          <!-- Botão Gerenciar De/Para -->
+          <button onclick="abrirModalDePara()" title="Gerenciar Mapeamento de Lojas, Regiões e Estados" 
+                  class="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-2.5 py-2 rounded-lg border border-slate-300 transition shadow-sm">
+            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+            <span>De/Para</span>
+            <span id="badgeDeParaAlerta" class="hidden ml-1 px-1.5 py-0.2 bg-red-600 text-white text-[10px] font-bold rounded-full">0</span>
+          </button>
+
+          <!-- Botão Sincronizar -->
+          <button id="btnSync" onclick="iniciarSincronizacao()" title="Sincronizar dados de 3 meses com a MicroWork Cloud" 
+                  class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-sm hover:shadow transition">
+            <svg id="iconSync" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            <span id="txtSync">Sincronizar</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- TÍTULO CENTRAL: MOTOS EM ABERTO -->
+      <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
+        <h1 class="text-2xl font-extrabold text-red-600 tracking-tight">MOTOS EM ABERTO</h1>
+        
+        <!-- Barra de Busca Rápida + Filtro Status -->
+        <div class="flex items-center gap-3">
+          <!-- Campo Busca -->
+          <div class="relative">
+            <input type="text" id="campoBusca" oninput="debounceBusca()" placeholder="Buscar cliente, vendedor, NF, pedido..." 
+                   class="w-72 bg-slate-50 border border-slate-300 text-xs rounded-lg pl-8 pr-3 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none" />
+            <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </div>
+
+          <!-- Filtro Status Rápido -->
+          <select id="filtroStatus" onchange="aplicarFiltros()" class="bg-slate-50 border border-slate-300 text-xs rounded-lg px-2.5 py-1.5 font-medium">
+            <option value="Todos">Status: Todos</option>
+            <option value="Verificar">🚨 Apenas Verificar</option>
+            <option value="Não Verificar">Apenas Não Verificar</option>
+          </select>
+
+          <!-- Exportar -->
+          <button onclick="exportarCSV()" class="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 transition">
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Exportar CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- CARDS DE RESUMO (KPIs) -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
+          <div class="text-[11px] font-semibold text-slate-500 uppercase">Motos no Filtro</div>
+          <div id="kpiMotos" class="text-xl font-bold text-slate-800">0</div>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
+          <div class="text-[11px] font-semibold text-slate-500 uppercase">Valor em Aberto</div>
+          <div id="kpiAberto" class="text-xl font-bold text-red-600">R$ 0,00</div>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
+          <div class="text-[11px] font-semibold text-slate-500 uppercase">Valor Recebido</div>
+          <div id="kpiRecebido" class="text-xl font-bold text-emerald-600">R$ 0,00</div>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-semibold text-slate-500 uppercase">A Verificar (>= 10d)</div>
+            <div id="kpiVerificar" class="text-xl font-bold text-amber-600">0</div>
+          </div>
+          <span id="badgeVerificarAlerta" class="hidden px-2 py-1 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full">Atenção</span>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ÁREA PRINCIPAL: TABELA COM AS COLUNAS DO POWER BI -->
+  <main class="flex-1 max-w-[1700px] w-full mx-auto px-6 py-6 flex flex-col">
+    
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex-1 flex flex-col overflow-hidden">
+      
+      <!-- Tabela com Scroll Suave -->
+      <div class="overflow-x-auto overflow-y-auto max-h-[62vh] custom-scroll flex-1">
+        <table class="w-full text-left text-xs border-collapse">
+          
+          <!-- Cabeçalho da Tabela -->
+          <thead class="bg-slate-100 text-slate-700 font-semibold uppercase tracking-wider sticky top-0 z-10 border-b border-slate-200 shadow-sm">
+            <tr>
+              <th class="py-3 px-3 w-16 text-center cursor-pointer hover:bg-slate-200 transition" onclick="ordenar('loja_asc')">Loja ⬍</th>
+              <th class="py-3 px-4 min-w-[220px]">Vendedor</th>
+              <th class="py-3 px-4 min-w-[240px] cursor-pointer hover:bg-slate-200 transition" onclick="ordenar('pessoa_asc')">Pessoa (Cliente) ⬍</th>
+              <th class="py-3 px-3 text-center cursor-pointer hover:bg-slate-200 transition" onclick="ordenar('dias_chao_desc')" title="Dias desde que a moto chegou no pátio">Dias no chão ⬍</th>
+              <th class="py-3 px-3 text-center cursor-pointer hover:bg-slate-200 transition" onclick="ordenar('dias_emissao_desc')" title="Dias desde a emissão da venda">Dia emissão ⬍</th>
+              <th class="py-3 px-4 text-right cursor-pointer hover:bg-slate-200 transition" onclick="ordenar('aberto_desc')">Valor em Aberto ⬍</th>
+              <th class="py-3 px-4 text-right">Valor Recebido</th>
+              <th class="py-3 px-3 text-center">Documento</th>
+              <th class="py-3 px-3 text-center">Data Expedição</th>
+              <th class="py-3 px-3 text-center">NF+pedido</th>
+              <th class="py-3 px-3 text-center">Status</th>
+            </tr>
+          </thead>
+
+          <!-- Corpo da Tabela -->
+          <tbody id="corpoTabela" class="divide-y divide-slate-100 font-normal">
+            <tr>
+              <td colspan="11" class="py-12 text-center text-slate-400">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mb-2"></div>
+                <div>Carregando motos em aberto...</div>
+              </td>
+            </tr>
+          </tbody>
+
+        </table>
+      </div>
+
+      <!-- LINHA DE TOTAIS (Rodapé) -->
+      <div class="bg-slate-50 border-t-2 border-slate-300 px-6 py-3 flex items-center justify-between text-xs font-bold text-slate-800">
+        <div class="flex items-center gap-6">
+          <span class="uppercase tracking-wider text-slate-500">Total</span>
+          <span id="rodapeLinhas" class="text-slate-600 font-medium">0 registros exibidos</span>
+        </div>
+
+        <div class="flex items-center gap-8">
+          <div>
+            <span class="text-slate-500 font-semibold mr-2">Total em Aberto:</span>
+            <span id="rodapeTotalAberto" class="text-red-600 text-sm font-extrabold">R$ 0,00</span>
+          </div>
+
+          <div>
+            <span class="text-slate-500 font-semibold mr-2">Total Recebido:</span>
+            <span id="rodapeTotalRecebido" class="text-emerald-600 text-sm font-extrabold">R$ 0,00</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: BARRA DE PROGRESSO E AVISO INFORMATIVO DE CARREGAMENTO             -->
+  <!-- ========================================================================= -->
+  <div id="modalLoading" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 mx-4">
+      
+      <!-- Cabeçalho do Loading -->
+      <div class="flex items-center gap-3 mb-4">
+        <div class="p-2.5 bg-red-100 rounded-xl text-red-600">
+          <svg class="w-6 h-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-slate-800">Sincronizando com a MicroWork Cloud</h3>
+          <p class="text-xs text-slate-500">Atualizando os últimos 3 meses de todas as filiais</p>
+        </div>
+      </div>
+
+      <!-- Barra de Progresso com Porcentagem -->
+      <div class="mb-4">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-600 mb-1.5">
+          <span id="txtEtapaProgresso">Iniciando consulta...</span>
+          <span id="txtPorcentagem" class="text-red-600 font-bold">0%</span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden p-0.5 border border-slate-200">
+          <div id="barraProgresso" class="bg-red-600 h-full rounded-full transition-all duration-300 animate-stripes" style="width: 5%"></div>
+        </div>
+      </div>
+
+      <!-- AVISO SOLICITADO: INFORMA QUE NÃO TRAVOU, APENAS DEMORA PELAS LINHAS -->
+      <div class="bg-amber-50 border-l-4 border-amber-500 p-3.5 rounded-r-lg text-xs text-amber-900 leading-relaxed shadow-sm">
+        <div class="flex items-start gap-2">
+          <span class="text-base leading-none">⏳</span>
+          <div>
+            <span class="font-bold">Fique tranquilo, o sistema NÃO travou!</span>
+            <p class="mt-1 text-amber-800">
+              Estamos consultando e processando <strong>mais de 14.000 linhas</strong> de vendas e veículos das 84 lojas dos últimos 90 dias. Por conta do grande volume da API, essa etapa leva cerca de <strong>30 a 50 segundos</strong> para concluir.
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: CHECAGEM DE ATUALIZAÇÃO (GITHUB RELEASES / AUTO-UPDATER)           -->
+  <!-- ========================================================================= -->
+  <div id="modalUpdate" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 mx-4">
+      
+      <!-- Cabeçalho -->
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+          <div id="iconUpdateHeader" class="p-2 bg-emerald-100 text-emerald-600 rounded-lg font-bold text-sm">✔️</div>
+          <div>
+            <h3 id="tituloUpdate" class="text-base font-bold text-slate-800">Verificação de Versão</h3>
+            <p id="subtituloUpdate" class="text-xs text-slate-500">Motos em Aberto Oficial</p>
+          </div>
+        </div>
+        <button onclick="fecharModalUpdate()" class="text-slate-400 hover:text-slate-600 p-1 text-lg font-bold">✕</button>
+      </div>
+
+      <!-- Corpo da Mensagem -->
+      <div class="mb-5 bg-slate-50 p-4 rounded-xl border border-slate-200">
+        <div class="flex justify-between items-center mb-2 text-xs">
+          <span class="text-slate-500 font-semibold">Versão Atual Instalada:</span>
+          <span class="font-mono font-bold text-slate-800 bg-slate-200 px-2 py-0.5 rounded">v1.0.0</span>
+        </div>
+        <div class="flex justify-between items-center mb-3 text-xs">
+          <span class="text-slate-500 font-semibold">Última Versão no GitHub:</span>
+          <span id="txtUltimaVersao" class="font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">v1.0.0</span>
+        </div>
+        <p id="txtMensagemUpdate" class="text-xs text-slate-700 leading-relaxed font-medium">Você já está executando a versão oficial mais recente.</p>
+      </div>
+
+      <!-- Botões de Ação -->
+      <div class="flex flex-col gap-2">
+        <a id="btnBaixarMSI" href="#" target="_blank" class="hidden w-full text-center bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2.5 px-4 rounded-lg shadow transition flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+          </svg>
+          <span>Baixar Instalador Oficial Windows (.msi)</span>
+        </a>
+
+        <a id="btnVerReleases" href="https://github.com/ClaudiolfSantos/motos-em-aberto/releases" target="_blank" 
+           class="w-full text-center bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2 px-4 rounded-lg border border-slate-300 transition">
+          Ver Histórico de Lançamentos no GitHub
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: GERENCIAMENTO COMPLETO DO DE/PARA DE LOJAS                         -->
+  <!-- ========================================================================= -->
+  <div id="modalDePara" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-4xl w-full max-h-[90vh] flex flex-col mx-4 overflow-hidden">
+      
+      <!-- Cabeçalho do Modal -->
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-red-100 rounded-lg text-red-600 font-bold text-sm">🏪</div>
+          <div>
+            <h2 class="text-base font-bold text-slate-800">Gerenciador de De/Para (Lojas, Regiões e Estados)</h2>
+            <p class="text-xs text-slate-500">Adicione, edite ou exclua o mapeamento das siglas de lojas</p>
+          </div>
+        </div>
+        <button onclick="fecharModalDePara()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-200 transition text-lg font-bold">✕</button>
+      </div>
+
+      <!-- Abas do Modal -->
+      <div class="flex border-b border-slate-200 bg-slate-100/70 px-6 pt-2 gap-4 text-xs font-semibold">
+        <button id="tabMapeadas" onclick="alternarAbaDePara('mapeadas')" class="py-2.5 px-3 border-b-2 border-red-600 text-red-600 flex items-center gap-1.5 transition">
+          <span>Lojas Mapeadas</span>
+          <span id="badgeTotalMapeadas" class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px]">0</span>
+        </button>
+
+        <button id="tabPendentes" onclick="alternarAbaDePara('pendentes')" class="py-2.5 px-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-1.5 transition">
+          <span>⚠️ Lojas Não Localizadas</span>
+          <span id="badgeTotalPendentes" class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px]">0</span>
+        </button>
+      </div>
+
+      <!-- CONTEÚDO DA ABA 1: LOJAS MAPEADAS COM FORMULÁRIO -->
+      <div id="conteudoMapeadas" class="p-6 flex-1 flex flex-col overflow-hidden">
+        
+        <!-- Formulário de Adicionar / Editar -->
+        <form id="formDePara" onsubmit="salvarDePara(event)" class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 mb-4 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Sigla da Loja</label>
+            <input type="text" id="inputLoja" required placeholder="Ex: BT1, MGA, ALC" 
+                   class="w-full bg-white border border-slate-300 text-xs rounded-lg px-2.5 py-1.5 uppercase font-bold focus:ring-2 focus:ring-red-500 focus:outline-none" />
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Região</label>
+            <select id="selectRegiaoModal" required onchange="aoSelecionarRegiaoModal()" 
+                    class="w-full bg-white border border-slate-300 text-xs rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none">
+              <option value="">Selecione...</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Estado (UF)</label>
+            <input type="text" id="inputEstadoModal" required placeholder="Ex: RJ, PR" maxlength="2" 
+                   class="w-full bg-white border border-slate-300 text-xs rounded-lg px-2.5 py-1.5 uppercase font-bold focus:ring-2 focus:ring-red-500 focus:outline-none" />
+          </div>
+
+          <div class="flex gap-2">
+            <button type="submit" id="btnSalvarDePara" class="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition">
+              Salvar
+            </button>
+            <button type="button" onclick="limparFormDePara()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold py-1.5 px-2.5 rounded-lg transition" title="Limpar formulário">
+              Limpar
+            </button>
+          </div>
+        </form>
+
+        <!-- Barra de Busca no De/Para -->
+        <div class="mb-3 flex items-center justify-between gap-4">
+          <input type="text" id="buscaModalDePara" oninput="filtrarTabelaDePara()" placeholder="Filtrar por sigla, região ou estado..." 
+                 class="w-72 bg-white border border-slate-300 text-xs rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-red-500 focus:outline-none" />
+          <span class="text-xs text-slate-400">Total: <span id="txtContadorDePara" class="font-bold text-slate-700">0</span> lojas</span>
+        </div>
+
+        <!-- Tabela do De/Para -->
+        <div class="overflow-y-auto max-h-[42vh] custom-scroll border border-slate-200 rounded-lg flex-1">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-slate-100 text-slate-700 font-semibold uppercase tracking-wider sticky top-0 z-10 border-b border-slate-200">
+              <tr>
+                <th class="py-2.5 px-4 w-28">Loja (Sigla)</th>
+                <th class="py-2.5 px-4">Região</th>
+                <th class="py-2.5 px-3 w-20 text-center">Estado</th>
+                <th class="py-2.5 px-4 w-28 text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="corpoTabelaDePara" class="divide-y divide-slate-100">
+              <!-- Linhas inseridas dinamicamente -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- CONTEÚDO DA ABA 2: LOJAS NÃO LOCALIZADAS (PENDENTES) -->
+      <div id="conteudoPendentes" class="p-6 flex-1 flex flex-col overflow-hidden hidden">
+        
+        <div class="mb-4 bg-amber-50 border-l-4 border-amber-500 p-3 rounded-r-lg text-xs text-amber-900">
+          <p class="font-bold">Identificação de Lojas da API sem De/Para:</p>
+          <p class="mt-0.5 text-amber-800">Estas siglas foram detectadas nas vendas da MicroWork Cloud, mas ainda não estão cadastradas na sua tabela de De/Para. Clique em <strong>"Mapear Agora"</strong> para definir a Região e o Estado.</p>
+        </div>
+
+        <div class="overflow-y-auto max-h-[48vh] custom-scroll border border-slate-200 rounded-lg flex-1">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-slate-100 text-slate-700 font-semibold uppercase tracking-wider sticky top-0 z-10 border-b border-slate-200">
+              <tr>
+                <th class="py-2.5 px-4 w-24">Sigla</th>
+                <th class="py-2.5 px-4">Filial Origem</th>
+                <th class="py-2.5 px-4">Exemplo Vendedor</th>
+                <th class="py-2.5 px-3 text-center">Motos</th>
+                <th class="py-2.5 px-4 text-right">Valor em Aberto</th>
+                <th class="py-2.5 px-4 w-28 text-center">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="corpoTabelaPendentes" class="divide-y divide-slate-100">
+              <!-- Linhas inseridas dinamicamente -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: CHECAGEM DE ATUALIZAÇÃO (GITHUB RELEASES / AUTO-UPDATER)           -->
+  <!-- ========================================================================= -->
+  <div id="modalUpdate" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 mx-4">
+      
+      <!-- Cabeçalho -->
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+          <div id="iconUpdateHeader" class="p-2 bg-emerald-100 text-emerald-600 rounded-lg font-bold text-sm">✔️</div>
+          <div>
+            <h3 id="tituloUpdate" class="text-base font-bold text-slate-800">Verificação de Versão</h3>
+            <p id="subtituloUpdate" class="text-xs text-slate-500">Motos em Aberto Oficial</p>
+          </div>
+        </div>
+        <button onclick="fecharModalUpdate()" class="text-slate-400 hover:text-slate-600 p-1 text-lg font-bold">✕</button>
+      </div>
+
+      <!-- Corpo da Mensagem -->
+      <div class="mb-5 bg-slate-50 p-4 rounded-xl border border-slate-200">
+        <div class="flex justify-between items-center mb-2 text-xs">
+          <span class="text-slate-500 font-semibold">Versão Atual Instalada:</span>
+          <span class="font-mono font-bold text-slate-800 bg-slate-200 px-2 py-0.5 rounded">v1.0.0</span>
+        </div>
+        <div class="flex justify-between items-center mb-3 text-xs">
+          <span class="text-slate-500 font-semibold">Última Versão no GitHub:</span>
+          <span id="txtUltimaVersao" class="font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">v1.0.0</span>
+        </div>
+        <p id="txtMensagemUpdate" class="text-xs text-slate-700 leading-relaxed font-medium">Você já está executando a versão oficial mais recente.</p>
+      </div>
+
+      <!-- Botões de Ação -->
+      <div class="flex flex-col gap-2">
+        <a id="btnBaixarMSI" href="#" target="_blank" class="hidden w-full text-center bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2.5 px-4 rounded-lg shadow transition flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+          </svg>
+          <span>Baixar Instalador Oficial Windows (.msi)</span>
+        </a>
+
+        <a id="btnVerReleases" href="https://github.com/ClaudiolfSantos/motos-em-aberto/releases" target="_blank" 
+           class="w-full text-center bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2 px-4 rounded-lg border border-slate-300 transition">
+          Ver Histórico de Lançamentos no GitHub
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT: Lógica Completa -->
+  <script>
+    let dadosCompletos = [];
+    let ordemAtual = 'aberto_desc';
+    let timeoutBusca = null;
+    let listaDeParaGlobal = [];
+    let listaRegioesModal = [];
+
+    function formataMoeda(valor) {
+      if (valor === null || valor === undefined) return 'R$ 0,00';
+      return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      await carregarFiltros();
+      await carregarDados();
+      verificarStatusSincronizacao();
+    });
+
+    // 1. Carrega Filtros Iniciais
+    async function carregarFiltros() {
+      try {
+        const res = await fetch('/api/filtros');
+        const data = await res.json();
+
+        atualizarOpcoesSelect('filtroLoja', data.lojas);
+        atualizarOpcoesSelect('filtroRegiao', data.regioes);
+        atualizarOpcoesSelect('filtroEstado', data.estados);
+        atualizarOpcoesSelect('filtroTipoVenda', data.tipos_venda);
+
+        if (data.ultima_atualizacao) {
+          document.getElementById('dataAtualizacao').innerText = data.ultima_atualizacao;
+        }
+      } catch (err) {
+        console.error('Erro ao carregar filtros:', err);
+      }
+    }
+
+    function atualizarOpcoesSelect(id, lista) {
+      const select = document.getElementById(id);
+      const valorAtual = select.value;
+      select.innerHTML = '<option value="Todos">Todos</option>';
+      lista.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item;
+        opt.innerText = item;
+        select.appendChild(opt);
+      });
+      if (lista.includes(valorAtual)) {
+        select.value = valorAtual;
+      }
+    }
+
+    // 2. Carrega Dados da Tabela Principal
+    async function carregarDados() {
+      const loja = document.getElementById('filtroLoja').value;
+      const regiao = document.getElementById('filtroRegiao').value;
+      const estado = document.getElementById('filtroEstado').value;
+      const tipoVenda = document.getElementById('filtroTipoVenda').value;
+      const status = document.getElementById('filtroStatus').value;
+      const busca = document.getElementById('campoBusca').value;
+
+      const params = new URLSearchParams({
+        loja, regiao, estado, tipo_venda: tipoVenda, status, busca, ordem: ordemAtual
+      });
+
+      try {
+        const res = await fetch(`/api/dados?${params.toString()}`);
+        const json = await res.json();
+        dadosCompletos = json.linhas;
+
+        atualizarTotais(json.totais);
+        renderizarTabela(json.linhas);
+
+      } catch (err) {
+        console.error('Erro ao buscar dados:', err);
+      }
+    }
+
+    function atualizarTotais(totais) {
+      document.getElementById('kpiMotos').innerText = totais.total_motos.toLocaleString('pt-BR');
+      document.getElementById('kpiAberto').innerText = formataMoeda(totais.total_aberto);
+      document.getElementById('kpiRecebido').innerText = formataMoeda(totais.total_recebido);
+      document.getElementById('kpiVerificar').innerText = totais.total_verificar.toLocaleString('pt-BR');
+
+      const badge = document.getElementById('badgeVerificarAlerta');
+      if (totais.total_verificar > 0) {
+        badge.classList.remove('hidden');
+        badge.innerText = `${totais.total_verificar} Pendentes`;
+      } else {
+        badge.classList.add('hidden');
+      }
+
+      document.getElementById('rodapeLinhas').innerText = `${totais.total_motos.toLocaleString('pt-BR')} registros filtrados`;
+      document.getElementById('rodapeTotalAberto').innerText = formataMoeda(totais.total_aberto);
+      document.getElementById('rodapeTotalRecebido').innerText = formataMoeda(totais.total_recebido);
+
+      if (totais.ultima_atualizacao) {
+        document.getElementById('dataAtualizacao').innerText = totais.ultima_atualizacao;
+      }
+    }
+
+    function renderizarTabela(linhas) {
+      const tbody = document.getElementById('corpoTabela');
+      if (linhas.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="py-12 text-center text-slate-400">Nenhum registro encontrado para os filtros selecionados.</td></tr>`;
+        return;
+      }
+
+      let html = '';
+      linhas.forEach((m, idx) => {
+        const bgZebra = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60';
+        const isVerificar = m.status === 'Verificar';
+        
+        const expedicao = (m.data_expedicao && m.data_expedicao !== '31/12/1899') 
+                          ? m.data_expedicao 
+                          : '<span class="text-slate-300 font-mono">—</span>';
+
+        const badgeChao = m.dias_no_chao !== null 
+          ? `<span class="font-semibold ${m.dias_no_chao >= 10 ? 'text-amber-700 bg-amber-50 px-2 py-0.5 rounded' : 'text-slate-700'}">${m.dias_no_chao}</span>`
+          : '<span class="text-slate-300" title="Aguardando Chegada">—</span>';
+
+        const badgeEmissao = `<span class="font-semibold ${m.dia_emissao >= 10 ? 'text-red-700 bg-red-50 px-2 py-0.5 rounded' : 'text-slate-700'}">${m.dia_emissao}</span>`;
+
+        const statusBadge = isVerificar
+          ? `<span class="px-2 py-0.5 text-[10px] font-extrabold uppercase rounded bg-red-100 text-red-700 border border-red-200">Verificar</span>`
+          : `<span class="px-2 py-0.5 text-[10px] font-semibold text-slate-400">OK</span>`;
+
+        html += `
+          <tr class="${bgZebra} hover:bg-red-50/40 transition">
+            <td class="py-2.5 px-3 text-center font-bold text-slate-800 bg-slate-100/50">${m.loja || '-'}</td>
+            <td class="py-2.5 px-4 text-slate-700 truncate max-w-[220px]" title="${m.vendedor}">${m.vendedor || '-'}</td>
+            <td class="py-2.5 px-4 font-medium text-slate-800 truncate max-w-[240px]" title="${m.pessoa}">${m.pessoa || '-'}</td>
+            <td class="py-2.5 px-3 text-center">${badgeChao}</td>
+            <td class="py-2.5 px-3 text-center">${badgeEmissao}</td>
+            <td class="py-2.5 px-4 text-right font-bold text-red-600">${formataMoeda(m.valor_em_aberto)}</td>
+            <td class="py-2.5 px-4 text-right font-medium text-emerald-600">${formataMoeda(m.valor_recebido)}</td>
+            <td class="py-2.5 px-3 text-center font-mono text-slate-600">${m.documento || '-'}</td>
+            <td class="py-2.5 px-3 text-center">${expedicao}</td>
+            <td class="py-2.5 px-3 text-center font-mono font-medium text-slate-700">${m.nf_pedido || '-'}</td>
+            <td class="py-2.5 px-3 text-center">${statusBadge}</td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    function aplicarFiltros() { carregarDados(); }
+    function debounceBusca() {
+      clearTimeout(timeoutBusca);
+      timeoutBusca = setTimeout(() => { carregarDados(); }, 300);
+    }
+    function ordenar(criterio) { ordemAtual = criterio; carregarDados(); }
+
+    // =========================================================================
+    // ROTINA DE SINCRONIZAÇÃO COM BARRA DE PROGRESSO E AVISO INFORMATIVO
+    // =========================================================================
+    let intervalPollSync = null;
+
+    async function iniciarSincronizacao() {
+      try {
+        const res = await fetch('/api/sincronizar', { method: 'POST' });
+        const data = await res.json();
+        
+        if (res.status === 409) {
+          alert('A sincronização já está em andamento. Aguarde a conclusão.');
+          return;
+        }
+
+        // Abre o modal de loading imediatamente
+        abrirModalLoading();
+        iniciarPollingSync();
+
+      } catch (err) {
+        alert('Erro ao disparar sincronização: ' + err.message);
+      }
+    }
+
+    function abrirModalLoading() {
+      document.getElementById('modalLoading').classList.remove('hidden');
+      atualizarProgressoVisual(5, 'Iniciando consulta à MicroWork Cloud...');
+    }
+
+    function fecharModalLoading() {
+      document.getElementById('modalLoading').classList.add('hidden');
+    }
+
+    function atualizarProgressoVisual(porcentagem, etapa) {
+      document.getElementById('barraProgresso').style.width = `${porcentagem}%`;
+      document.getElementById('txtPorcentagem').innerText = `${porcentagem}%`;
+      document.getElementById('txtEtapaProgresso').innerText = etapa;
+    }
+
+    function iniciarPollingSync() {
+      if (intervalPollSync) clearInterval(intervalPollSync);
+
+      intervalPollSync = setInterval(async () => {
+        try {
+          const res = await fetch('/api/sincronizar/status');
+          const status = await res.json();
+
+          if (status.rodando) {
+            atualizarProgressoVisual(status.progresso, status.etapa);
+          } else {
+            // Terminou
+            clearInterval(intervalPollSync);
+            intervalPollSync = null;
+
+            if (status.erro) {
+              alert('Erro durante a sincronização: ' + status.erro);
+              fecharModalLoading();
+            } else {
+              atualizarProgressoVisual(100, 'Sincronização concluída com sucesso!');
+              setTimeout(async () => {
+                fecharModalLoading();
+                await carregarFiltros();
+                await carregarDados();
+                await carregarDePara();
+              }, 800);
+            }
+          }
+        } catch (err) {
+          console.error('Erro ao verificar status:', err);
+        }
+      }, 800);
+    }
+
+    async function verificarStatusSincronizacao() {
+      try {
+        const res = await fetch('/api/sincronizar/status');
+        const status = await res.json();
+        if (status.rodando) {
+          abrirModalLoading();
+          iniciarPollingSync();
+        }
+      } catch (e) {}
+    }
+
+    // =========================================================================
+    // GERENCIADOR DE/PARA: MODAL, CRUD E LOJAS PENDENTES
+    // =========================================================================
+    async function abrirModalDePara() {
+      document.getElementById('modalDePara').classList.remove('hidden');
+      await carregarDePara();
+    }
+
+    function fecharModalDePara() {
+      document.getElementById('modalDePara').classList.add('hidden');
+      limparFormDePara();
+    }
+
+    function alternarAbaDePara(aba) {
+      const tabM = document.getElementById('tabMapeadas');
+      const tabP = document.getElementById('tabPendentes');
+      const cM = document.getElementById('conteudoMapeadas');
+      const cP = document.getElementById('conteudoPendentes');
+
+      if (aba === 'mapeadas') {
+        tabM.className = 'py-2.5 px-3 border-b-2 border-red-600 text-red-600 flex items-center gap-1.5 transition font-bold';
+        tabP.className = 'py-2.5 px-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-1.5 transition';
+        cM.classList.remove('hidden');
+        cP.classList.add('hidden');
+      } else {
+        tabP.className = 'py-2.5 px-3 border-b-2 border-amber-600 text-amber-700 flex items-center gap-1.5 transition font-bold';
+        tabM.className = 'py-2.5 px-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-1.5 transition';
+        cP.classList.remove('hidden');
+        cM.classList.add('hidden');
+      }
+    }
+
+    async function carregarDePara() {
+      try {
+        const res = await fetch('/api/depara');
+        const data = await res.json();
+
+        listaDeParaGlobal = data.lojas;
+        listaRegioesModal = data.regioes;
+
+        // Preenche select de Região no formulário do modal
+        const selectR = document.getElementById('selectRegiaoModal');
+        selectR.innerHTML = '<option value="">Selecione...</option>';
+        data.regioes.forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r.regiao;
+          opt.dataset.estado = r.estado;
+          opt.innerText = `${r.regiao} (${r.estado})`;
+          selectR.appendChild(opt);
+        });
+
+        // Atualiza Badges de contagem
+        document.getElementById('badgeTotalMapeadas').innerText = data.lojas.length;
+        document.getElementById('badgeTotalPendentes').innerText = data.pendentes.length;
+        
+        const badgeAlertaTopo = document.getElementById('badgeDeParaAlerta');
+        if (data.pendentes.length > 0) {
+          badgeAlertaTopo.classList.remove('hidden');
+          badgeAlertaTopo.innerText = data.pendentes.length;
+        } else {
+          badgeAlertaTopo.classList.add('hidden');
+        }
+
+        renderizarTabelaDePara(data.lojas);
+        renderizarTabelaPendentes(data.pendentes);
+
+      } catch (err) {
+        console.error('Erro ao carregar De/Para:', err);
+      }
+    }
+
+    function renderizarTabelaDePara(lojas) {
+      const tbody = document.getElementById('corpoTabelaDePara');
+      document.getElementById('txtContadorDePara').innerText = lojas.length;
+
+      if (lojas.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-slate-400">Nenhuma loja encontrada.</td></tr>`;
+        return;
+      }
+
+      let html = '';
+      lojas.forEach((l, idx) => {
+        const bg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/70';
+        html += `
+          <tr class="${bg} hover:bg-red-50/40 transition">
+            <td class="py-2.5 px-4 font-bold text-slate-800">${l.loja}</td>
+            <td class="py-2.5 px-4 text-slate-700">${l.regiao}</td>
+            <td class="py-2.5 px-3 text-center font-semibold text-slate-800 bg-slate-100/50">${l.estado}</td>
+            <td class="py-2.5 px-4 text-center">
+              <button onclick="editarLoja('${l.loja}', '${l.regiao}', '${l.estado}')" class="text-blue-600 hover:text-blue-800 font-semibold mr-3" title="Editar">✏️ Editar</button>
+              <button onclick="excluirLoja('${l.loja}')" class="text-red-600 hover:text-red-800 font-semibold" title="Excluir">🗑️ Excluir</button>
+            </td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+
+    function renderizarTabelaPendentes(pendentes) {
+      const tbody = document.getElementById('corpoTabelaPendentes');
+      if (pendentes.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-12 text-center text-emerald-600 font-semibold">
+              <div class="text-2xl mb-1">✔</div>
+              <div>Parabéns! Todas as lojas encontradas na API estão 100% mapeadas no De/Para.</div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      let html = '';
+      pendentes.forEach(p => {
+        html += `
+          <tr class="bg-amber-50/40 hover:bg-amber-100/50 transition">
+            <td class="py-2.5 px-4 font-extrabold text-red-600">${p.loja}</td>
+            <td class="py-2.5 px-4 text-slate-700">${p.empresa || '-'}</td>
+            <td class="py-2.5 px-4 text-slate-600 truncate max-w-[200px]" title="${p.vendedor}">${p.vendedor || '-'}</td>
+            <td class="py-2.5 px-3 text-center font-bold text-slate-800">${p.total_motos}</td>
+            <td class="py-2.5 px-4 text-right font-bold text-red-600">${formataMoeda(p.total_aberto)}</td>
+            <td class="py-2.5 px-4 text-center">
+              <button onclick="prepararMapeamentoPendente('${p.loja}')" class="bg-red-600 hover:bg-red-700 text-white font-bold px-2.5 py-1 rounded text-[11px] transition shadow-sm">
+                ➕ Mapear
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+
+    function filtrarTabelaDePara() {
+      const termo = document.getElementById('buscaModalDePara').value.toUpperCase();
+      const filtradas = listaDeParaGlobal.filter(l => 
+        l.loja.toUpperCase().includes(termo) ||
+        l.regiao.toUpperCase().includes(termo) ||
+        l.estado.toUpperCase().includes(termo)
+      );
+      renderizarTabelaDePara(filtradas);
+    }
+
+    function aoSelecionarRegiaoModal() {
+      const select = document.getElementById('selectRegiaoModal');
+      const opt = select.options[select.selectedIndex];
+      if (opt && opt.dataset.estado) {
+        document.getElementById('inputEstadoModal').value = opt.dataset.estado;
+      }
+    }
+
+    function editarLoja(loja, regiao, estado) {
+      document.getElementById('inputLoja').value = loja;
+      document.getElementById('selectRegiaoModal').value = regiao;
+      document.getElementById('inputEstadoModal').value = estado;
+      document.getElementById('btnSalvarDePara').innerText = 'Atualizar';
+      document.getElementById('inputLoja').focus();
+    }
+
+    function prepararMapeamentoPendente(loja) {
+      alternarAbaDePara('mapeadas');
+      document.getElementById('inputLoja').value = loja;
+      document.getElementById('selectRegiaoModal').value = '';
+      document.getElementById('inputEstadoModal').value = '';
+      document.getElementById('btnSalvarDePara').innerText = 'Salvar';
+      document.getElementById('selectRegiaoModal').focus();
+    }
+
+    function limparFormDePara() {
+      document.getElementById('inputLoja').value = '';
+      document.getElementById('selectRegiaoModal').value = '';
+      document.getElementById('inputEstadoModal').value = '';
+      document.getElementById('btnSalvarDePara').innerText = 'Salvar';
+    }
+
+    async function salvarDePara(e) {
+      e.preventDefault();
+      const loja = document.getElementById('inputLoja').value.trim().toUpperCase();
+      const regiao = document.getElementById('selectRegiaoModal').value.trim();
+      const estado = document.getElementById('inputEstadoModal').value.trim().toUpperCase();
+
+      if (!loja || !regiao || !estado) {
+        alert('Preencha Loja, Região e Estado.');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/depara', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: json = JSON.stringify({ loja, regiao, estado })
+        });
+        const data = await res.json();
+        if (data.sucesso) {
+          limparFormDePara();
+          await carregarDePara();
+          await carregarFiltros();
+          await carregarDados();
+        } else {
+          alert('Erro ao salvar: ' + data.mensagem);
+        }
+      } catch (err) {
+        alert('Erro ao comunicar com o servidor: ' + err.message);
+      }
+    }
+
+    async function excluirLoja(loja) {
+      if (!confirm(`Deseja realmente remover a loja ${loja} do De/Para? As motos dessa loja ficarão com status 'PENDENTE DE/PARA'.`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/depara?loja=${encodeURIComponent(loja)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.sucesso) {
+          await carregarDePara();
+          await carregarFiltros();
+          await carregarDados();
+        } else {
+          alert('Erro ao excluir: ' + data.mensagem);
+        }
+      } catch (err) {
+        alert('Erro ao comunicar com o servidor: ' + err.message);
+      }
+    }
+
+    // Exportação CSV
+    function exportarCSV() {
+      if (!dadosCompletos || dadosCompletos.length === 0) {
+        alert('Nenhum dado para exportar.');
+        return;
+      }
+
+      const headers = ['Loja', 'Vendedor', 'Pessoa', 'Dias no chao', 'Dia emissao', 'Valor em Aberto', 'Valor Recebido', 'Documento', 'Data Expedicao', 'NF+pedido', 'Regiao', 'Estado', 'Status'];
+      const rows = dadosCompletos.map(m => [
+        `"${m.loja || ''}"`,
+        `"${(m.vendedor || '').replace(/"/g, '""')}"`,
+        `"${(m.pessoa || '').replace(/"/g, '""')}"`,
+        m.dias_no_chao ?? '',
+        m.dia_emissao ?? '',
+        (m.valor_em_aberto || 0).toFixed(2).replace('.', ','),
+        (m.valor_recebido || 0).toFixed(2).replace('.', ','),
+        `"${m.documento || ''}"`,
+        `"${m.data_expedicao || ''}"`,
+        `"${m.nf_pedido || ''}"`,
+        `"${m.regiao || ''}"`,
+        `"${m.estado || ''}"`,
+        `"${m.status || ''}"`
+      ]);
+
+      let csvContent = '\uFEFF' + headers.join(';') + '\n';
+      rows.forEach(r => { csvContent += r.join(';') + '\n'; });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Motos_Em_Aberto_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    // =========================================================================
+    // CHECAGEM DE ATUALIZAÇÃO / AUTO-UPDATER (GITHUB RELEASES)
+    // =========================================================================
+    async function verificarAtualizacao(abrirModalSempre = false) {
+      const btn = document.getElementById('btnCheckUpdate');
+      const icon = document.getElementById('iconCheckUpdate');
+      
+      if (icon) icon.classList.add('animate-spin');
+
+      try {
+        const res = await fetch('/api/versao');
+        const data = await res.json();
+
+        const modal = document.getElementById('modalUpdate');
+        const txtUltima = document.getElementById('txtUltimaVersao');
+        const txtMsg = document.getElementById('txtMensagemUpdate');
+        const btnMsi = document.getElementById('btnBaixarMSI');
+        const iconHeader = document.getElementById('iconUpdateHeader');
+        const titulo = document.getElementById('tituloUpdate');
+
+        txtUltima.innerText = `v${data.ultima_versao}`;
+
+        if (data.tem_atualizacao) {
+          iconHeader.innerText = '🚀';
+          iconHeader.className = 'p-2 bg-red-100 text-red-600 rounded-lg font-bold text-sm';
+          titulo.innerText = 'Nova Versão Disponível!';
+          txtMsg.innerHTML = `Uma nova versão oficial (<strong>v${data.ultima_versao}</strong>) está pronta para instalação com melhorias e correções.`;
+          
+          if (data.url_msi) {
+            btnMsi.href = data.url_msi;
+            btnMsi.classList.remove('hidden');
+          } else {
+            btnMsi.href = data.url_release;
+            btnMsi.classList.remove('hidden');
+          }
+          modal.classList.remove('hidden');
+        } else {
+          iconHeader.innerText = '✔️';
+          iconHeader.className = 'p-2 bg-emerald-100 text-emerald-600 rounded-lg font-bold text-sm';
+          titulo.innerText = 'Sistema Atualizado';
+          txtMsg.innerText = `Você já está executando a versão oficial mais recente (v${data.versao_atual}).`;
+          btnMsi.classList.add('hidden');
+          
+          if (abrirModalSempre) {
+            modal.classList.remove('hidden');
+          }
+        }
+
+      } catch (err) {
+        console.error('Erro ao verificar versão:', err);
+        if (abrirModalSempre) {
+          alert('Não foi possível verificar atualizações no momento. Verifique sua conexão com a internet.');
+        }
+      } finally {
+        if (icon) icon.classList.remove('animate-spin');
+      }
+    }
+
+    function fecharModalUpdate() {
+      document.getElementById('modalUpdate').classList.add('hidden');
+    }
+  </script>
+
+</body>
+</html>

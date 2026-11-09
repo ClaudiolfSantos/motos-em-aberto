@@ -1,0 +1,61 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Motos em Aberto"
+           Manufacturer="Motocar"
+           Version="1.0.0"
+           UpgradeCode="4C5E8D21-7A6F-4B90-8C83-82D7B481016A"
+           Language="1046"
+           Codepage="1252">
+
+    <MajorUpgrade DowngradeErrorMessage="Uma versão mais recente do Motos em Aberto já está instalada." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon" SourceFile="logo\icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/ClaudiolfSantos/motos-em-aberto" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/ClaudiolfSantos/motos-em-aberto" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="MANUFACTURERFOLDER" Name="Motocar">
+        <Directory Id="INSTALLFOLDER" Name="Motos em Aberto" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Motocar" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PublishDir)\**" />
+    </ComponentGroup>
+
+    <Component Id="ApplicationShortcut" Directory="ApplicationProgramsFolder" Guid="7E55AFB0-589A-40F1-8B35-C4F8F128E631">
+      <Shortcut Id="ApplicationStartMenuShortcut"
+                Name="Motos em Aberto"
+                Description="Sistema de Acompanhamento Motos em Aberto - Motocar"
+                Target="[INSTALLFOLDER]MotosEmAberto.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="AppIcon" />
+      <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\Motocar\MotosEmAberto" Name="installed_menu" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="DesktopShortcut" Directory="DesktopFolder" Guid="8B66CFE1-4321-4DA2-9C12-D2A4B892F134">
+      <Shortcut Id="ApplicationDesktopShortcut"
+                Name="Motos em Aberto"
+                Description="Sistema de Acompanhamento Motos em Aberto - Motocar"
+                Target="[INSTALLFOLDER]MotosEmAberto.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="AppIcon" />
+      <RegistryValue Root="HKCU" Key="Software\Motocar\MotosEmAberto" Name="installed_desktop" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Feature Id="MainApplication" Title="Motos em Aberto" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="ApplicationShortcut" />
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+
+  </Package>
+</Wix>

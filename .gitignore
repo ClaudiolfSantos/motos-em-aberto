@@ -1,0 +1,23 @@
+# OS Files
+.DS_Store
+Thumbs.db
+
+# .NET & WiX Build Outputs
+bin/
+obj/
+publish/
+*.msi
+*.wixobj
+*.wixpdb
+
+# SQLite temporary WAL / SHM files (preserves base motocar.db)
+database/*.db-wal
+database/*.db-shm
+
+# Python cache & logs
+__pycache__/
+*.py[cod]
+*.log
+
+# Temp files
+/tmp/

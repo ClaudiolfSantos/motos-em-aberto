@@ -1,0 +1,41 @@
+Relatórios e BI > Financeiro > Contas a Receber > MOTOS EM ABERTO
+
+POST: https://microworkcloud.com.br/api/integracao/terceiro
+
+                Header:
+                Content-Type: application/json
+                Host: microworkcloud.com.br
+                Authorization: Bearer SUA_CREDENCIAL
+
+                Body Request:
+                {
+                    "idrelatorioconfiguracao": 223,
+                    "idrelatorioconsulta": 111,
+                    "idrelatorioconfiguracaoleiaute": 223,
+                    "idrelatoriousuarioleiaute": 2949,
+                    "ididioma": 1,
+                    "listaempresas": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,82,24,26,27,28,29,30,38,46,31,32,37,42,43,33,34,39,45,47,35,36,40,41,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,76,77,78,79,80,81,84,85,74,75],
+                    "filtros": "DocumentoCancelado=True;
+        AVista=False;
+        Especie=7;
+        Vendedor=null;
+        Origem=null;
+        QuantidadeParcelas=0;
+        GrupoEconomico=null;
+        Portador=null;
+        Pessoa=null;
+        SomenteSemProvisao=True;
+        ComDocumentoFiscal=True;
+        Receita=null;
+        Modalidadedecobranca=null;
+        Municipio=null;
+        DataVencimento=;
+        Datademovimentacaoinicial=2026-11-01;
+        SituacaoCobrancaBancaria=False;
+        Datademovimentacaofinal=2026-11-09;
+        Situacao=1;
+        Departamento=1,452,2,453,3,454,49,455,59,456,69,457,79,458,89,459,99,460,109,461,119,462,129,463,139,464,149,465,159,466,169,467,179,468,189,469,199,470,209,471,219,472,229,473,239,474,1232,1237,249,475,269,477,279,478,289,479,299,480,309,481,572,579,692,699,319,482,329,483,557,564,632,639,647,654,403,484,415,485,587,594,677,684,707,714,527,533,542,548,602,608,617,623,722,728,737,743,752,758,767,773,782,788,797,803,812,818,827,833,842,848,857,863,872,878,887,893,902,908,917,923,932,938,947,953,962,968,977,983,992,998,1007,1013,1022,1028,1037,1043,1052,1058,1067,1073,1082,1088,1097,1103,1142,1148,1157,1163,1172,1178,1187,1193,1202,1208,1217,1223,1262,1268,1277,1283,1112,1118,1127,1133;
+        SomenteComProvisao=True;
+        RelacaoComercial=null"
+                }
+                

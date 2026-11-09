@@ -1,0 +1,43 @@
+Relatórios e BI > Veículo > Venda de Veículo > MOTOS EM ABERTO BASE
+
+POST: https://microworkcloud.com.br/api/integracao/terceiro
+
+                Header:
+                Content-Type: application/json
+                Host: microworkcloud.com.br
+                Authorization: Bearer SUA_CREDENCIAL
+
+                Body Request:
+                {
+                    "idrelatorioconfiguracao": 248,
+                    "idrelatorioconsulta": 50,
+                    "idrelatorioconfiguracaoleiaute": 248,
+                    "idrelatoriousuarioleiaute": 3055,
+                    "ididioma": 1,
+                    "listaempresas": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,82,24,26,27,28,29,30,38,46,31,32,37,42,43,33,34,39,45,47,35,36,40,41,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,76,77,78,79,80,81,84,85,74,75],
+                    "filtros": "ContatoCRM=null;
+        Origemdavenda=null;
+        Vendedor=null;
+        Tipodemovimento=9,10;
+        Modelodoveiculo=null;
+        Consorcio=null;
+        DesconsiderarEstornadoDevolvido=True;
+        SemAutorizacaoExpedicao=True;
+        ComAutorizacaoExpedicao=True;
+        Pessoa=null;
+        EquipeCRM=null;
+        Cor=null;
+        Tipodevenda=null;
+        Municipio=null;
+        MovimentosCancelados=False;
+        TipoPessoa=null;
+        Periododamovimentacaofinal=2026-11-09 00:00;
+        SemExpedicao=True;
+        TipoVeiculo=null;
+        FinanceiraLeasing=null;
+        ComExpedicao=True;
+        Estadodoveiculo=null;
+        Periododamovimentacaoinicial=2026-11-01 00:00;
+        FinanceiraCalculo=null;
+        Pontodevendadovendedor=null"
+                }

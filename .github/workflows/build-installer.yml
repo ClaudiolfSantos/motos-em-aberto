@@ -1,0 +1,158 @@
+name: Build Windows Installer (MSI)
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-test:
+    name: Build .NET 8 & WiX MSI + Smoke Test
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install WiX Toolset
+        run: |
+          dotnet tool install --global wix
+          echo "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Verify WiX Version
+        run: |
+          wix --version
+
+      - name: Publish .NET 8 App (Self-Contained win-x64)
+        run: |
+          dotnet publish src/MotosEmAberto/MotosEmAberto.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=false `
+            -o publish
+
+      - name: Build MSI Installer with WiX Toolset
+        run: |
+          wix build wix/Package.wxs `
+            -arch x64 `
+            -d PublishDir=publish `
+            -o Setup-MotosEmAberto-v1.0.0.msi
+
+      - name: Calculate SHA-256 Checksum
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash -Path Setup-MotosEmAberto-v1.0.0.msi -Algorithm SHA256).Hash
+          "$hash  Setup-MotosEmAberto-v1.0.0.msi" | Out-File -FilePath Setup-MotosEmAberto-v1.0.0.msi.sha256 -Encoding utf8
+          Write-Host "MSI SHA256: $hash"
+
+      # -------------------------------------------------------------
+      # REGRA 3: TESTE AUTOMATIZADO DE INSTALAÇÃO (SMOKE TEST)
+      # -------------------------------------------------------------
+      - name: Smoke Test - Install MSI Silently
+        shell: pwsh
+        run: |
+          Write-Host "Iniciando instalacao silenciosa do pacote MSI..."
+          $process = Start-Process msiexec.exe -ArgumentList "/i Setup-MotosEmAberto-v1.0.0.msi /qn /norestart /log install.log" -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            Write-Error "Falha na instalacao do MSI. Codigo de saida: $($process.ExitCode)"
+            Get-Content install.log -Tail 50
+            exit 1
+          }
+          Write-Host "✔ MSI instalado com sucesso (ExitCode 0)."
+
+      - name: Smoke Test - Verify Installed Files
+        shell: pwsh
+        run: |
+          $installPath = "C:\Program Files\Motocar\Motos em Aberto"
+          $exePath = Join-Path $installPath "MotosEmAberto.exe"
+          Write-Host "Verificando se arquivos existem em $installPath ..."
+          if (-not (Test-Path $exePath)) {
+            Write-Error "O executavel $exePath nao foi encontrado apos a instalacao!"
+            exit 1
+          }
+          Write-Host "✔ Executavel oficial encontrado: $exePath"
+          Get-ChildItem -Path $installPath -Recurse | Select-Object FullName
+
+      - name: Smoke Test - Verify Executable Launches
+        shell: pwsh
+        run: |
+          $exePath = "C:\Program Files\Motocar\Motos em Aberto\MotosEmAberto.exe"
+          Write-Host "Testando inicializacao do executavel instalado..."
+          $proc = Start-Process -FilePath $exePath -PassThru
+          Start-Sleep -Seconds 5
+          if ($proc.HasExited -and $proc.ExitCode -ne 0) {
+            Write-Error "O executavel fechou inesperadamente com codigo $($proc.ExitCode)"
+            exit 1
+          }
+          Write-Host "✔ Executavel iniciou corretamente!"
+          Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+
+      - name: Smoke Test - Uninstall MSI Silently
+        shell: pwsh
+        run: |
+          Write-Host "Testando desinstalacao silenciosa oficial..."
+          $process = Start-Process msiexec.exe -ArgumentList "/x Setup-MotosEmAberto-v1.0.0.msi /qn /norestart /log uninstall.log" -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            Write-Error "Falha na desinstalacao do MSI. Codigo: $($process.ExitCode)"
+            Get-Content uninstall.log -Tail 50
+            exit 1
+          }
+          Write-Host "✔ MSI desinstalado com sucesso (ExitCode 0)."
+
+      - name: Upload Installer Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Setup-MotosEmAberto-v1.0.0
+          path: |
+            Setup-MotosEmAberto-v1.0.0.msi
+            Setup-MotosEmAberto-v1.0.0.msi.sha256
+
+      - name: Create or Update GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.0.0' }}
+          name: "Motos em Aberto v1.0.0"
+          draft: false
+          prerelease: false
+          files: |
+            Setup-MotosEmAberto-v1.0.0.msi
+            Setup-MotosEmAberto-v1.0.0.msi.sha256
+          body: |
+            ### 🏍️ Motos em Aberto — Motocar (Versão v1.0.0)
+            
+            Instalador oficial Microsoft Windows (`.msi`) para acompanhamento e auditoria em tempo real de motos faturadas e em trânsito.
+            
+            #### 📦 Download do Instalador:
+            - **[`Setup-MotosEmAberto-v1.0.0.msi`](https://github.com/ClaudiolfSantos/motos-em-aberto/releases/download/v1.0.0/Setup-MotosEmAberto-v1.0.0.msi)** — Pacote oficial Microsoft Installer (x64) com auto-atualizador e atalhos na Área de Trabalho e Menu Iniciar.
+            - **`Setup-MotosEmAberto-v1.0.0.msi.sha256`** — Hash de integridade criptográfica.
+            
+            #### ✨ Destaques da Versão:
+            1. **Interface Réplica Power BI Aperfeiçoada**:
+               - Grade com colunas: Loja, Vendedor, Pessoa, Dias no Chão, Dia Emissão, Valor em Aberto, Valor Recebido, Documento, Data Expedição, NF+Pedido e Status.
+               - Sem o erro 31/12/1899 para pedidos sem expedição.
+               - Filtros rápidos múltiplos: Loja, Região, Estado, Tipo de Venda e Status (Verificar / Não Verificar).
+               - Barra de busca universal (busca por cliente, vendedor, NF, pedido, loja).
+               - Linha fixa de rodapé com cálculo dinâmico de totais (linhas, saldo em aberto e valor recebido).
+               - Exportador de dados para formato CSV/Excel.
+            2. **Regra de Validação Automática**:
+               - Classificação instantânea com badge `Verificar` quando `dias_emissao >= 10` e `dias_chegada >= 10`.
+            3. **Mapeamento Inteligente De/Para**:
+               - Mapeamento completo das lojas para Região e Estado (UF).
+               - Modal administrativo interativo para adicionar, editar, excluir mapeamentos e visualizar lojas pendentes.
+            4. **Janela Automática de 3 Meses**:
+               - Recarga dinâmica de dados (Hoje até 90 dias atrás) com MicroWork Cloud APIs.
+               - Limpeza atômica e substituição com os dados mais recentes.
+            5. **Controle de Versão em Tempo Real**:
+               - Botão de checagem direta com GitHub Releases na barra superior.
