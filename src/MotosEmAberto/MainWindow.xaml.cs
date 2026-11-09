@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Windows;
+using System.Windows.Media.Imaging;
 using Microsoft.Web.WebView2.Core;
 
 namespace MotosEmAberto
@@ -10,7 +11,25 @@ namespace MotosEmAberto
         public MainWindow()
         {
             InitializeComponent();
+            TryLoadWindowIcon();
             Loaded += MainWindow_Loaded;
+        }
+
+        private void TryLoadWindowIcon()
+        {
+            try
+            {
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                string iconPath = Path.Combine(baseDir, "logo", "icon.ico");
+                if (File.Exists(iconPath))
+                {
+                    Icon = BitmapFrame.Create(new Uri(iconPath, UriKind.Absolute));
+                }
+            }
+            catch
+            {
+                // Ignora silenciosamente caso o formato de ícone falhe em algum tema/DPI do Windows
+            }
         }
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)

@@ -24,6 +24,11 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Run Python Unit & Integration Tests (API, SQLite & Business Rules)
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tests -v
+
       - name: Install WiX Toolset
         shell: pwsh
         run: |
@@ -99,22 +104,25 @@ jobs:
           "INSTALLED_DIR=$found" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Get-ChildItem -Path $found -Recurse | Select-Object FullName
 
-      - name: Smoke Test - Verify Executable Engine
+      - name: Smoke Test - Verify Executable Engine & Run C# Unit Tests
         shell: pwsh
         run: |
           $exePath = Join-Path $env:INSTALLED_DIR "MotosEmAberto.exe"
-          Write-Host "Testando motor do aplicativo instalado em $exePath ..."
+          Write-Host "Executando suite de testes unitarios e integracao do executavel em $exePath ..."
           $proc = Start-Process -FilePath $exePath -ArgumentList "--smoke-test" -PassThru -NoNewWindow
-          $finished = $proc.WaitForExit(15000)
+          $finished = $proc.WaitForExit(30000)
+          if (Test-Path "self-test-report.log") {
+            Get-Content "self-test-report.log"
+          }
           if (-not $finished) {
-            Write-Warning "Processo nao finalizou em 15s. Encerrando forcadamente..."
+            Write-Warning "Processo nao finalizou em 30s. Encerrando forcadamente..."
             Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
           }
           if ($proc.ExitCode -ne 0) {
-            Write-Error "O motor do executavel falhou no smoke test com codigo: $($proc.ExitCode)"
+            Write-Error "O motor do executavel falhou na suite de testes com codigo: $($proc.ExitCode)"
             exit 1
           }
-          Write-Host "✔ Smoke test do executavel concluido com sucesso (ExitCode: $($proc.ExitCode))!"
+          Write-Host "✔ Suite completa de testes do executavel concluida com sucesso (ExitCode: $($proc.ExitCode))!"
 
       - name: Smoke Test - Uninstall MSI Silently
         shell: pwsh

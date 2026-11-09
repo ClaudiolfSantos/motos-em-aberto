@@ -874,7 +874,7 @@
           <tr class="bg-amber-50/40 hover:bg-amber-100/50 transition">
             <td class="py-2.5 px-4 font-extrabold text-red-600">${p.loja}</td>
             <td class="py-2.5 px-4 text-slate-700">${p.empresa || '-'}</td>
-            <td class="py-2.5 px-4 text-slate-600 truncate max-w-[200px]" title="${p.vendedor}">${p.vendedor || '-'}</td>
+            <td class="py-2.5 px-4 text-slate-600 truncate max-w-[200px]" title="${p.exemplo_vendedor || p.vendedor || ''}">${p.exemplo_vendedor || p.vendedor || '-'}</td>
             <td class="py-2.5 px-3 text-center font-bold text-slate-800">${p.total_motos}</td>
             <td class="py-2.5 px-4 text-right font-bold text-red-600">${formataMoeda(p.total_aberto)}</td>
             <td class="py-2.5 px-4 text-center">
@@ -945,7 +945,7 @@
         const res = await fetch('/api/depara', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: json = JSON.stringify({ loja, regiao, estado })
+          body: JSON.stringify({ loja, regiao, estado })
         });
         const data = await res.json();
         if (data.sucesso) {

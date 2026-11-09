@@ -6,8 +6,7 @@
         Height="850" Width="1350"
         MinHeight="600" MinWidth="900"
         WindowState="Maximized"
-        WindowStartupLocation="CenterScreen"
-        Icon="logo/icon.ico">
+        WindowStartupLocation="CenterScreen">
     <Grid>
         <wv2:WebView2 Name="webView" />
     </Grid>

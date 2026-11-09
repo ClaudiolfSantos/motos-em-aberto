@@ -100,7 +100,7 @@ namespace MotosEmAberto.Services
             return true;
         }
 
-        private static string PreparePayload(string filePath, int daysBack, bool isFinanceiro)
+        public static string PreparePayload(string filePath, int daysBack, bool isFinanceiro)
         {
             string content = File.ReadAllText(filePath, Encoding.UTF8);
             int start = content.IndexOf('{');
@@ -139,7 +139,7 @@ namespace MotosEmAberto.Services
             return jsonStr;
         }
 
-        private static async Task<List<JsonElement>> FetchApiAsync(string payloadJson, string token)
+        public static async Task<List<JsonElement>> FetchApiAsync(string payloadJson, string token)
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, ApiUrl);
             request.Headers.UserAgent.ParseAdd(UserAgent);
@@ -163,7 +163,7 @@ namespace MotosEmAberto.Services
             return list;
         }
 
-        private static void SaveFinanceiro(List<JsonElement> records)
+        public static void SaveFinanceiro(List<JsonElement> records)
         {
             using var conn = DatabaseService.GetConnection();
             using var trans = conn.BeginTransaction();
@@ -225,7 +225,7 @@ namespace MotosEmAberto.Services
             trans.Commit();
         }
 
-        private static void SaveBase(List<JsonElement> records)
+        public static void SaveBase(List<JsonElement> records)
         {
             using var conn = DatabaseService.GetConnection();
             using var trans = conn.BeginTransaction();
@@ -279,7 +279,7 @@ namespace MotosEmAberto.Services
             trans.Commit();
         }
 
-        private static void Consolidate()
+        public static void Consolidate()
         {
             using var conn = DatabaseService.GetConnection();
             using var trans = conn.BeginTransaction();
@@ -298,40 +298,108 @@ namespace MotosEmAberto.Services
                     INSERT INTO motos_em_aberto_consolidado (
                         empresa, loja_vendedor, regiao, estado, nome_vendedor, vendedor,
                         pessoa, dias_chegada, dias_emissao, aberto, recebido,
-                        documento, dataexpedicao, nf_pedido, status, descricao_veiculo_tipo_venda
+                        documento, dataexpedicao, nf_pedido,
+                        documentoparcela, numeroproposta, descricao_veiculo_tipo_venda,
+                        vencimento, emissao, info_dias_emissao,
+                        datachegada, info_dias_chegada, status,
+                        especiedodocumento, sincronizado_em
                     )
                     SELECT 
                         f.empresa,
-                        TRIM(SUBSTR(f.vendedor, 1, INSTR(f.vendedor, ' - ') - 1)) AS loja_vendedor,
-                        COALESCE(dl.regiao, 'PENDENTE DE/PARA') AS regiao,
-                        COALESCE(dl.estado, '??') AS estado,
-                        TRIM(SUBSTR(f.vendedor, INSTR(f.vendedor, ' - ') + 3)) AS nome_vendedor,
+                        t.loja_vendedor,
+                        COALESCE(dp.regiao, 'PENDENTE DE/PARA') as regiao,
+                        COALESCE(dp.estado, 'PENDENTE') as estado,
+                        
+                        CASE 
+                            WHEN f.vendedor LIKE '%-%' THEN TRIM(SUBSTR(f.vendedor, INSTR(f.vendedor, '-') + 1))
+                            ELSE TRIM(f.vendedor)
+                        END as nome_vendedor,
                         f.vendedor,
                         f.pessoa,
-                        ROUND(julianday('now') - julianday(b.datachegada)) AS dias_chegada,
-                        ROUND(julianday('now') - julianday(f.dataemissao)) AS dias_emissao,
+                        
+                        -- Dias no chão (dias desde a chegada)
+                        CASE 
+                            WHEN b.datachegada IS NOT NULL AND b.datachegada != '' 
+                            THEN CAST(julianday(date('now', 'localtime')) - julianday(date(b.datachegada)) AS INTEGER)
+                            ELSE NULL 
+                        END as dias_chegada,
+                        
+                        -- Dia emissão (dias desde a emissão)
+                        CAST(julianday(date('now', 'localtime')) - julianday(date(f.emissao)) AS INTEGER) as dias_emissao,
+                        
                         f.aberto,
                         f.recebido,
-                        f.documentoparcela AS documento,
+                        
+                        -- Documento (NF base antes do ' - ')
                         CASE 
-                            WHEN b.datahoraexpedicao IS NULL OR b.datahoraexpedicao = '' OR b.datahoraexpedicao LIKE '1899%' THEN '31/12/1899'
-                            ELSE SUBSTR(b.datahoraexpedicao, 9, 2) || '/' || SUBSTR(b.datahoraexpedicao, 6, 2) || '/' || SUBSTR(b.datahoraexpedicao, 1, 4)
-                        END AS data_expedicao,
+                            WHEN INSTR(f.documentoparcela, ' - ') > 0 
+                            THEN SUBSTR(f.documentoparcela, 1, INSTR(f.documentoparcela, ' - ') - 1)
+                            ELSE f.documentoparcela 
+                        END as documento,
+                        
+                        -- Data Expedição
+                        CASE 
+                            WHEN b.datahoraexpedicao IS NOT NULL AND b.datahoraexpedicao != '' AND b.datahoraexpedicao NOT LIKE '1899%'
+                            THEN strftime('%d/%m/%Y', b.datahoraexpedicao)
+                            ELSE NULL 
+                        END as dataexpedicao,
+                        
+                        -- NF+pedido (ex: 144678/116587)
                         CASE 
                             WHEN INSTR(f.documentoparcela, '/') > 0 
-                                THEN SUBSTR(f.documentoparcela, 1, INSTR(f.documentoparcela, '/') - 1) || '/' || f.numeroproposta
+                            THEN SUBSTR(f.documentoparcela, 1, INSTR(f.documentoparcela, '/') - 1) || '/' || f.numeroproposta
                             ELSE f.documentoparcela || '/' || f.numeroproposta
-                        END AS nf_pedido,
+                        END as nf_pedido,
+                        
+                        f.documentoparcela,
+                        f.numeroproposta,
+                        f.descricao_veiculo_tipo_venda,
+                        strftime('%d/%m/%Y', f.vencimento) as vencimento,
+                        strftime('%d/%m/%Y', f.emissao) as emissao,
+                        CAST(julianday(date('now', 'localtime')) - julianday(date(f.emissao)) AS INTEGER) || ' dias (' || strftime('%d/%m/%Y', f.emissao) || ')' as info_dias_emissao,
+                        
                         CASE 
-                            WHEN (ROUND(julianday('now') - julianday(f.dataemissao)) >= 10) 
-                             AND (ROUND(julianday('now') - julianday(b.datachegada)) >= 10) 
+                            WHEN b.datachegada IS NOT NULL AND b.datachegada != '' 
+                            THEN strftime('%d/%m/%Y', b.datachegada)
+                            ELSE NULL 
+                        END as datachegada,
+                        
+                        CASE 
+                            WHEN b.datachegada IS NOT NULL AND b.datachegada != '' 
+                            THEN CAST(julianday(date('now', 'localtime')) - julianday(date(b.datachegada)) AS INTEGER) || ' dias (' || strftime('%d/%m/%Y', b.datachegada) || ')'
+                            ELSE 'Aguardando Chegada'
+                        END as info_dias_chegada,
+                        
+                        -- Regra de Validação
+                        CASE 
+                            WHEN (CAST(julianday(date('now', 'localtime')) - julianday(date(f.emissao)) AS INTEGER) >= 10)
+                             AND (b.datachegada IS NOT NULL AND b.datachegada != '' AND CAST(julianday(date('now', 'localtime')) - julianday(date(b.datachegada)) AS INTEGER) >= 10)
                             THEN 'Verificar'
                             ELSE 'Não Verificar'
-                        END AS status,
-                        f.descricao_veiculo_tipo_venda AS tipo_venda
+                        END as status,
+                        
+                        f.especiedodocumento,
+                        datetime('now', 'localtime')
                     FROM motos_em_aberto_financeiro f
-                    LEFT JOIN motos_em_aberto_base b ON f.numeroproposta = b.proposta
-                    LEFT JOIN de_para_lojas dl ON dl.loja = TRIM(SUBSTR(f.vendedor, 1, INSTR(f.vendedor, ' - ') - 1));
+                    CROSS JOIN (
+                        SELECT 
+                            f_inner.id as fid,
+                            CASE 
+                                WHEN f_inner.vendedor LIKE '%-%' THEN TRIM(SUBSTR(f_inner.vendedor, 1, INSTR(f_inner.vendedor, '-') - 1))
+                                WHEN f_inner.empresa LIKE '%-%' THEN TRIM(SUBSTR(f_inner.empresa, INSTR(f_inner.empresa, '-') + 1))
+                                ELSE 'OUTROS'
+                            END as loja_vendedor
+                        FROM motos_em_aberto_financeiro f_inner
+                    ) t ON f.id = t.fid
+                    LEFT JOIN (
+                        SELECT 
+                            proposta, 
+                            MAX(datachegada) as datachegada,
+                            MAX(datahoraexpedicao) as datahoraexpedicao
+                        FROM motos_em_aberto_base
+                        GROUP BY proposta
+                    ) b ON f.numeroproposta = b.proposta
+                    LEFT JOIN de_para_lojas dp ON UPPER(t.loja_vendedor) = dp.loja;
                 ";
                 cmd.ExecuteNonQuery();
             }
@@ -339,30 +407,40 @@ namespace MotosEmAberto.Services
             trans.Commit();
         }
 
-        private static string GetProp(JsonElement elem, string prop)
+        public static string GetProp(JsonElement elem, string prop)
         {
             if (elem.TryGetProperty(prop, out var v))
             {
-                return v.GetString() ?? "";
+                return v.ValueKind switch
+                {
+                    JsonValueKind.String => v.GetString() ?? "",
+                    JsonValueKind.Number => v.GetRawText(),
+                    JsonValueKind.True => "true",
+                    JsonValueKind.False => "false",
+                    _ => ""
+                };
             }
             return "";
         }
 
-        private static double ParseDouble(string str)
+        public static double ParseDouble(string str)
         {
             if (string.IsNullOrWhiteSpace(str)) return 0.0;
             str = str.Replace("R$", "").Trim();
             if (double.TryParse(str, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var val))
                 return val;
+            if (double.TryParse(str, System.Globalization.NumberStyles.Any, new System.Globalization.CultureInfo("pt-BR"), out var valPt))
+                return valPt;
             return 0.0;
         }
 
-        private static long ParseLong(string str)
+        public static long ParseLong(string str)
         {
             if (string.IsNullOrWhiteSpace(str)) return 0;
             if (long.TryParse(str, out var val)) return val;
+            if (double.TryParse(str, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var dval))
+                return (long)dval;
             return 0;
         }
     }
 }
-

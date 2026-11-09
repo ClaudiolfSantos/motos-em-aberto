@@ -52,7 +52,7 @@ namespace MotosEmAberto.Services
             var regioes = new List<string>();
             var estados = new List<string>();
             var tiposVenda = new List<string>();
-            string atualizadoEm = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+            string ultimaAtualizacao = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
 
             using var conn = GetConnection();
 
@@ -86,14 +86,11 @@ namespace MotosEmAberto.Services
 
             using (var cmd = conn.CreateCommand())
             {
-                cmd.CommandText = "SELECT max(sincronizado_em) FROM motos_em_aberto_financeiro;";
+                cmd.CommandText = "SELECT strftime('%d/%m/%Y %H:%M', MAX(sincronizado_em)) FROM motos_em_aberto_consolidado;";
                 var val = cmd.ExecuteScalar();
                 if (val != null && val != DBNull.Value && !string.IsNullOrEmpty(val.ToString()))
                 {
-                    if (DateTime.TryParse(val.ToString(), out var dt))
-                    {
-                        atualizadoEm = dt.ToString("dd/MM/yyyy HH:mm");
-                    }
+                    ultimaAtualizacao = val.ToString()!;
                 }
             }
 
@@ -104,7 +101,8 @@ namespace MotosEmAberto.Services
                 ["regioes"] = regioes,
                 ["estados"] = estados,
                 ["tipos_venda"] = tiposVenda,
-                ["atualizado_em"] = atualizadoEm
+                ["ultima_atualizacao"] = ultimaAtualizacao,
+                ["atualizado_em"] = ultimaAtualizacao
             };
         }
 
@@ -118,85 +116,97 @@ namespace MotosEmAberto.Services
             if (!string.IsNullOrEmpty(loja) && loja != "Todos")
             {
                 condicoes.Add("loja_vendedor = @loja");
-                parametros.Add(new SqliteParameter("@loja", loja));
+                parametros.Add(new SqliteParameter("@loja", loja.Trim()));
             }
 
             if (!string.IsNullOrEmpty(regiao) && regiao != "Todos")
             {
                 condicoes.Add("regiao = @regiao");
-                parametros.Add(new SqliteParameter("@regiao", regiao));
+                parametros.Add(new SqliteParameter("@regiao", regiao.Trim()));
             }
 
             if (!string.IsNullOrEmpty(estado) && estado != "Todos")
             {
                 condicoes.Add("estado = @estado");
-                parametros.Add(new SqliteParameter("@estado", estado));
+                parametros.Add(new SqliteParameter("@estado", estado.Trim()));
             }
 
             if (!string.IsNullOrEmpty(tipoVenda) && tipoVenda != "Todos")
             {
                 condicoes.Add("descricao_veiculo_tipo_venda = @tipoVenda");
-                parametros.Add(new SqliteParameter("@tipoVenda", tipoVenda));
+                parametros.Add(new SqliteParameter("@tipoVenda", tipoVenda.Trim()));
             }
 
-            if (status == "Verificar")
+            if (!string.IsNullOrEmpty(status) && status != "Todos")
             {
-                condicoes.Add("status = 'Verificar'");
-            }
-            else if (status == "Não Verificar")
-            {
-                condicoes.Add("status = 'Não Verificar'");
+                condicoes.Add("status = @status");
+                parametros.Add(new SqliteParameter("@status", status.Trim()));
             }
 
             if (!string.IsNullOrEmpty(busca))
             {
-                condicoes.Add("(pessoa LIKE @busca OR vendedor LIKE @busca OR documento LIKE @busca OR nf_pedido LIKE @busca OR loja_vendedor LIKE @busca)");
-                parametros.Add(new SqliteParameter("@busca", $"%{busca}%"));
+                condicoes.Add("(pessoa LIKE @busca OR vendedor LIKE @busca OR documento LIKE @busca OR nf_pedido LIKE @busca OR loja_vendedor LIKE @busca OR CAST(numeroproposta AS TEXT) LIKE @busca)");
+                parametros.Add(new SqliteParameter("@busca", $"%{busca.Trim()}%"));
             }
 
             string whereClause = string.Join(" AND ", condicoes);
 
-            // Validação de ordenação
-            var mapaColunas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            // Ordenação idêntica ao server.py + suporte a colunas diretas
+            string orderBySql = "aberto DESC";
+            string ordemClean = (ordem ?? "aberto_desc").Trim().ToLowerInvariant();
+            if (ordemClean == "aberto_desc")
+                orderBySql = "aberto DESC";
+            else if (ordemClean == "dias_chao_desc")
+                orderBySql = "CASE WHEN dias_chegada IS NULL THEN 1 ELSE 0 END ASC, dias_chegada DESC";
+            else if (ordemClean == "dias_emissao_desc")
+                orderBySql = "dias_emissao DESC";
+            else if (ordemClean == "pessoa_asc")
+                orderBySql = "pessoa ASC";
+            else if (ordemClean == "loja_asc")
+                orderBySql = "loja_vendedor ASC";
+            else
             {
-                ["loja"] = "loja_vendedor",
-                ["vendedor"] = "vendedor",
-                ["pessoa"] = "pessoa",
-                ["dias_no_chao"] = "dias_chegada",
-                ["dia_emissao"] = "dias_emissao",
-                ["valor_em_aberto"] = "aberto",
-                ["valor_recebido"] = "recebido",
-                ["documento"] = "documento",
-                ["data_expedicao"] = "dataexpedicao",
-                ["nf_pedido"] = "nf_pedido",
-                ["status"] = "status",
-                ["regiao"] = "regiao",
-                ["estado"] = "estado"
-            };
-
-            string colunaSql = "dias_emissao";
-            if (!string.IsNullOrEmpty(ordem) && mapaColunas.TryGetValue(ordem, out var col))
-            {
-                colunaSql = col;
+                var mapaColunas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["loja"] = "loja_vendedor",
+                    ["vendedor"] = "vendedor",
+                    ["pessoa"] = "pessoa",
+                    ["dias_no_chao"] = "dias_chegada",
+                    ["dia_emissao"] = "dias_emissao",
+                    ["valor_em_aberto"] = "aberto",
+                    ["valor_recebido"] = "recebido",
+                    ["documento"] = "documento",
+                    ["data_expedicao"] = "dataexpedicao",
+                    ["nf_pedido"] = "nf_pedido",
+                    ["status"] = "status",
+                    ["regiao"] = "regiao",
+                    ["estado"] = "estado"
+                };
+                if (mapaColunas.TryGetValue(ordemClean, out var col))
+                {
+                    string direcaoSql = (dir?.ToUpperInvariant() == "ASC") ? "ASC" : "DESC";
+                    orderBySql = $"{col} {direcaoSql}";
+                }
             }
-            string direcaoSql = (dir?.ToUpperInvariant() == "ASC") ? "ASC" : "DESC";
 
             using var conn = GetConnection();
 
             // Totais
-            long totalLinhas = 0;
+            long totalMotos = 0;
             double totalAberto = 0;
             double totalRecebido = 0;
-            long aVerificar = 0;
+            long totalVerificar = 0;
+            string ultimaAtualizacao = "";
 
             using (var cmdTotais = conn.CreateCommand())
             {
                 cmdTotais.CommandText = $@"
                     SELECT 
-                        count(*),
-                        coalesce(sum(aberto), 0),
-                        coalesce(sum(recebido), 0),
-                        count(case when status = 'Verificar' then 1 end)
+                        COUNT(*) as total_motos,
+                        COALESCE(SUM(aberto), 0) as total_aberto,
+                        COALESCE(SUM(recebido), 0) as total_recebido,
+                        COALESCE(SUM(CASE WHEN status = 'Verificar' THEN 1 ELSE 0 END), 0) as total_verificar,
+                        COALESCE(strftime('%d/%m/%Y %H:%M', MAX(sincronizado_em)), '') as ultima_atualizacao
                     FROM motos_em_aberto_consolidado
                     WHERE {whereClause};
                 ";
@@ -208,10 +218,11 @@ namespace MotosEmAberto.Services
                 using var reader = cmdTotais.ExecuteReader();
                 if (reader.Read())
                 {
-                    totalLinhas = reader.GetInt64(0);
+                    totalMotos = reader.GetInt64(0);
                     totalAberto = reader.GetDouble(1);
                     totalRecebido = reader.GetDouble(2);
-                    aVerificar = reader.GetInt64(3);
+                    totalVerificar = reader.GetInt64(3);
+                    ultimaAtualizacao = reader.IsDBNull(4) ? "" : reader.GetString(4);
                 }
             }
 
@@ -221,6 +232,7 @@ namespace MotosEmAberto.Services
             {
                 cmdDados.CommandText = $@"
                     SELECT 
+                        id,
                         loja_vendedor AS loja,
                         vendedor,
                         pessoa,
@@ -231,13 +243,15 @@ namespace MotosEmAberto.Services
                         documento,
                         dataexpedicao AS data_expedicao,
                         nf_pedido,
-                        status,
                         regiao,
                         estado,
-                        descricao_veiculo_tipo_venda AS tipo_venda
+                        descricao_veiculo_tipo_venda AS tipo_venda,
+                        vencimento,
+                        emissao,
+                        status
                     FROM motos_em_aberto_consolidado
                     WHERE {whereClause}
-                    ORDER BY {colunaSql} {direcaoSql};
+                    ORDER BY {orderBySql};
                 ";
                 foreach (var p in parametros)
                 {
@@ -249,20 +263,23 @@ namespace MotosEmAberto.Services
                 {
                     registros.Add(new Dictionary<string, object?>
                     {
-                        ["loja"] = reader.IsDBNull(0) ? "" : reader.GetString(0),
-                        ["vendedor"] = reader.IsDBNull(1) ? "" : reader.GetString(1),
-                        ["pessoa"] = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                        ["dias_no_chao"] = reader.IsDBNull(3) ? (int?)null : reader.GetInt32(3),
-                        ["dia_emissao"] = reader.IsDBNull(4) ? (int?)null : reader.GetInt32(4),
-                        ["valor_em_aberto"] = reader.IsDBNull(5) ? 0.0 : reader.GetDouble(5),
-                        ["valor_recebido"] = reader.IsDBNull(6) ? 0.0 : reader.GetDouble(6),
-                        ["documento"] = reader.IsDBNull(7) ? "" : reader.GetString(7),
-                        ["data_expedicao"] = reader.IsDBNull(8) ? "" : reader.GetString(8),
-                        ["nf_pedido"] = reader.IsDBNull(9) ? "" : reader.GetString(9),
-                        ["status"] = reader.IsDBNull(10) ? "" : reader.GetString(10),
+                        ["id"] = reader.IsDBNull(0) ? 0L : reader.GetInt64(0),
+                        ["loja"] = reader.IsDBNull(1) ? "" : reader.GetString(1),
+                        ["vendedor"] = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                        ["pessoa"] = reader.IsDBNull(3) ? "" : reader.GetString(3),
+                        ["dias_no_chao"] = reader.IsDBNull(4) ? (int?)null : reader.GetInt32(4),
+                        ["dia_emissao"] = reader.IsDBNull(5) ? (int?)null : reader.GetInt32(5),
+                        ["valor_em_aberto"] = reader.IsDBNull(6) ? 0.0 : reader.GetDouble(6),
+                        ["valor_recebido"] = reader.IsDBNull(7) ? 0.0 : reader.GetDouble(7),
+                        ["documento"] = reader.IsDBNull(8) ? "" : reader.GetString(8),
+                        ["data_expedicao"] = reader.IsDBNull(9) ? "" : reader.GetString(9),
+                        ["nf_pedido"] = reader.IsDBNull(10) ? "" : reader.GetString(10),
                         ["regiao"] = reader.IsDBNull(11) ? "" : reader.GetString(11),
                         ["estado"] = reader.IsDBNull(12) ? "" : reader.GetString(12),
-                        ["tipo_venda"] = reader.IsDBNull(13) ? "" : reader.GetString(13)
+                        ["tipo_venda"] = reader.IsDBNull(13) ? "" : reader.GetString(13),
+                        ["vencimento"] = reader.IsDBNull(14) ? "" : reader.GetString(14),
+                        ["emissao"] = reader.IsDBNull(15) ? "" : reader.GetString(15),
+                        ["status"] = reader.IsDBNull(16) ? "" : reader.GetString(16)
                     });
                 }
             }
@@ -270,14 +287,21 @@ namespace MotosEmAberto.Services
             return new Dictionary<string, object>
             {
                 ["sucesso"] = true,
-                ["total_linhas"] = totalLinhas,
+                ["total_linhas"] = totalMotos,
                 ["totais"] = new Dictionary<string, object>
                 {
-                    ["linhas"] = totalLinhas,
+                    ["total_motos"] = totalMotos,
+                    ["total_aberto"] = Math.Round(totalAberto, 2),
+                    ["total_recebido"] = Math.Round(totalRecebido, 2),
+                    ["total_verificar"] = totalVerificar,
+                    ["ultima_atualizacao"] = ultimaAtualizacao,
+                    // Chaves legadas para retrocompatibilidade
+                    ["linhas"] = totalMotos,
                     ["aberto"] = Math.Round(totalAberto, 2),
                     ["recebido"] = Math.Round(totalRecebido, 2),
-                    ["a_verificar"] = aVerificar
+                    ["a_verificar"] = totalVerificar
                 },
+                ["linhas"] = registros,
                 ["dados"] = registros
             };
         }
@@ -297,7 +321,7 @@ namespace MotosEmAberto.Services
                         l.loja,
                         l.regiao,
                         l.estado,
-                        (SELECT count(*) FROM motos_em_aberto_consolidado c WHERE c.loja_vendedor = l.loja) AS total_motos
+                        (SELECT count(*) FROM motos_em_aberto_consolidado c WHERE UPPER(c.loja_vendedor) = UPPER(l.loja)) AS total_motos
                     FROM de_para_lojas l
                     ORDER BY l.loja ASC;
                 ";
@@ -330,15 +354,30 @@ namespace MotosEmAberto.Services
 
             using (var cmd = conn.CreateCommand())
             {
-                cmd.CommandText = "SELECT loja_identificada, total_motos, exemplo_vendedor FROM v_lojas_pendentes_depara;";
+                cmd.CommandText = @"
+                    SELECT 
+                        loja_vendedor as loja,
+                        empresa,
+                        vendedor as exemplo_vendedor,
+                        COUNT(*) as total_motos,
+                        ROUND(COALESCE(SUM(aberto), 0), 2) as total_aberto
+                    FROM motos_em_aberto_consolidado
+                    WHERE regiao = 'PENDENTE DE/PARA'
+                    GROUP BY loja_vendedor
+                    ORDER BY total_motos DESC;
+                ";
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
+                    string exemploVendedor = reader.IsDBNull(2) ? "" : reader.GetString(2);
                     pendentes.Add(new Dictionary<string, object>
                     {
-                        ["loja"] = reader.GetString(0),
-                        ["total_motos"] = reader.GetInt64(1),
-                        ["exemplo_vendedor"] = reader.IsDBNull(2) ? "" : reader.GetString(2)
+                        ["loja"] = reader.IsDBNull(0) ? "" : reader.GetString(0),
+                        ["empresa"] = reader.IsDBNull(1) ? "" : reader.GetString(1),
+                        ["exemplo_vendedor"] = exemploVendedor,
+                        ["vendedor"] = exemploVendedor,
+                        ["total_motos"] = reader.GetInt64(3),
+                        ["total_aberto"] = reader.GetDouble(4)
                     });
                 }
             }
@@ -359,6 +398,11 @@ namespace MotosEmAberto.Services
             loja = loja.Trim().ToUpperInvariant();
             regiao = regiao.Trim();
             estado = estado.Trim().ToUpperInvariant();
+
+            if (string.IsNullOrEmpty(loja) || string.IsNullOrEmpty(regiao) || string.IsNullOrEmpty(estado))
+            {
+                throw new ArgumentException("Loja, Região e Estado são obrigatórios.");
+            }
 
             using var conn = GetConnection();
             using var trans = conn.BeginTransaction();
@@ -383,7 +427,7 @@ namespace MotosEmAberto.Services
                 cmd.CommandText = @"
                     UPDATE motos_em_aberto_consolidado
                     SET regiao = @regiao, estado = @estado
-                    WHERE loja_vendedor = @loja;
+                    WHERE UPPER(loja_vendedor) = @loja;
                 ";
                 cmd.Parameters.AddWithValue("@loja", loja);
                 cmd.Parameters.AddWithValue("@regiao", regiao);
@@ -404,7 +448,7 @@ namespace MotosEmAberto.Services
             using (var cmd = conn.CreateCommand())
             {
                 cmd.Transaction = trans;
-                cmd.CommandText = "DELETE FROM de_para_lojas WHERE loja = @loja;";
+                cmd.CommandText = "DELETE FROM de_para_lojas WHERE UPPER(loja) = @loja;";
                 cmd.Parameters.AddWithValue("@loja", loja);
                 cmd.ExecuteNonQuery();
             }
@@ -414,8 +458,8 @@ namespace MotosEmAberto.Services
                 cmd.Transaction = trans;
                 cmd.CommandText = @"
                     UPDATE motos_em_aberto_consolidado
-                    SET regiao = 'PENDENTE DE/PARA', estado = '??'
-                    WHERE loja_vendedor = @loja;
+                    SET regiao = 'PENDENTE DE/PARA', estado = 'PENDENTE'
+                    WHERE UPPER(loja_vendedor) = @loja;
                 ";
                 cmd.Parameters.AddWithValue("@loja", loja);
                 cmd.ExecuteNonQuery();
@@ -425,4 +469,3 @@ namespace MotosEmAberto.Services
         }
     }
 }
-

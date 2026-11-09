@@ -387,7 +387,7 @@ def populate_consolidado(conn: sqlite3.Connection):
             
             -- Data Expedição
             CASE 
-                WHEN b.datahoraexpedicao IS NOT NULL AND b.datahoraexpedicao != '' 
+                WHEN b.datahoraexpedicao IS NOT NULL AND b.datahoraexpedicao != '' AND b.datahoraexpedicao NOT LIKE '1899%'
                 THEN strftime('%d/%m/%Y', b.datahoraexpedicao)
                 ELSE NULL 
             END as dataexpedicao,

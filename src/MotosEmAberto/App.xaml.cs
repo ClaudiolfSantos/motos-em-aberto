@@ -12,24 +12,14 @@ namespace MotosEmAberto
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            // Modo de teste automatizado CI/CD (Smoke Test)
+            // Modo de teste automatizado CI/CD (Suíte Completa de Testes Unitários e Integração)
             foreach (var arg in e.Args)
             {
-                if (arg.Equals("--smoke-test", StringComparison.OrdinalIgnoreCase))
+                if (arg.Equals("--smoke-test", StringComparison.OrdinalIgnoreCase) ||
+                    arg.Equals("--run-tests", StringComparison.OrdinalIgnoreCase))
                 {
-                    try
-                    {
-                        DatabaseService.EnsureDatabaseInitialized();
-                        var filtros = DatabaseService.GetFiltros();
-                        int total = filtros["lojas"] is System.Collections.Generic.List<string> l ? l.Count : 0;
-                        Console.WriteLine($"✔ Smoke test executado com sucesso! Lojas mapeadas: {total}");
-                        Environment.Exit(0);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.Error.WriteLine("Erro critico no smoke test: " + ex);
-                        Environment.Exit(2);
-                    }
+                    int exitCode = SelfTestRunner.RunAllTests();
+                    Environment.Exit(exitCode);
                     return;
                 }
             }
