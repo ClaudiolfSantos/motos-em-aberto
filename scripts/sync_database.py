@@ -5,6 +5,7 @@ Cria as tabelas motos_em_aberto_financeiro e motos_em_aberto_base e insere os re
 """
 
 import os
+import sys
 import json
 import sqlite3
 import urllib.request
@@ -13,6 +14,12 @@ import zipfile
 import re
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
+
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except Exception:
+    pass
 
 DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'database', 'motocar.db')
 API_URL = 'https://microworkcloud.com.br/api/integracao/terceiro'

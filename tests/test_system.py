@@ -103,177 +103,173 @@ class TestMotosEmAbertoSystem(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             temp_db = os.path.join(tmpdir, "test_motocar.db")
             conn = sqlite3.connect(temp_db)
-            init_db(conn)
-            sync_de_para(conn)
+            try:
+                init_db(conn)
+                sync_de_para(conn)
 
-            hoje = datetime.now()
-            dt_15_dias_atras = (hoje - timedelta(days=15)).strftime("%Y-%m-%d")
-            dt_5_dias_atras = (hoje - timedelta(days=5)).strftime("%Y-%m-%d")
+                hoje = datetime.now()
+                dt_15_dias_atras = (hoje - timedelta(days=15)).strftime("%Y-%m-%d")
+                dt_5_dias_atras = (hoje - timedelta(days=5)).strftime("%Y-%m-%d")
 
-            # Primeira carga simulada (deve ser apagada pela segunda carga!)
-            lixo_inicial = [{
-                'empresa': 'EMPRESA ANTIGA',
-                'emissao': '2025-01-01',
-                'vencimento': '2025-02-01',
-                'dataemissao': '2025-01-01',
-                'especiedodocumento': 'NFE',
-                'pessoa': 'CLIENTE ANTIGO QUE DEVE SER APAGADO',
-                'recebido': 0.0,
-                'aberto': 99999.0,
-                'vendedor': 'SNS - VENDEDOR ANTIGO',
-                'documentoparcela': '11111/1',
-                'numeroproposta': 11111,
-                'descricao_veiculo_tipo_venda': 'VENDA'
-            }]
-            populate_financeiro(conn, lixo_inicial)
-            populate_base(conn, [])
-            populate_consolidado(conn)
-
-            cur = conn.cursor()
-            cur.execute("SELECT COUNT(*) FROM motos_em_aberto_consolidado WHERE pessoa = 'CLIENTE ANTIGO QUE DEVE SER APAGADO';")
-            self.assertEqual(cur.fetchone()[0], 1)
-
-            # Segunda carga com cenários de teste de todas as regras de negócio:
-            # Caso 1: Loja mapeada (SNS -> GRANDE RIO - RJ / RJ), 15 dias emissão, 15 dias chegada -> 'Verificar'
-            # Caso 2: Loja mapeada (ALC -> SÃO GONÇALO - RJ / RJ), 15 dias emissão, 5 dias chegada -> 'Não Verificar'
-            # Caso 3: Loja NÃO mapeada (LOJANOVA99), sem chegada na base -> 'PENDENTE DE/PARA' e 'Não Verificar'
-            # Caso 4: Vendedor sem hífen (fallback para empresa 'MOTOCAR - MGA'), expedição '1899-12-31' -> sem 31/12/1899
-            novos_fin = [
-                {
-                    'empresa': 'MOTOCAR',
-                    'emissao': f'{dt_15_dias_atras}T00:00:00',
-                    'vencimento': f'{dt_5_dias_atras}T00:00:00',
-                    'dataemissao': dt_15_dias_atras,
+                # Primeira carga simulada (deve ser apagada pela segunda carga!)
+                lixo_inicial = [{
+                    'empresa': 'EMPRESA ANTIGA',
+                    'emissao': '2025-01-01',
+                    'vencimento': '2025-02-01',
+                    'dataemissao': '2025-01-01',
                     'especiedodocumento': 'NFE',
-                    'pessoa': 'CLIENTE VERIFICAR 1',
-                    'recebido': 500.0,
-                    'aberto': 15000.0,
-                    'vendedor': 'SNS - JOAO DA SILVA',
-                    'documentoparcela': '144678/1 - NFE',
-                    'numeroproposta': 116587,
-                    'descricao_veiculo_tipo_venda': 'VENDA DIRETA'
-                },
-                {
-                    'empresa': 'MOTOCAR',
-                    'emissao': f'{dt_15_dias_atras}T00:00:00',
-                    'vencimento': f'{dt_5_dias_atras}T00:00:00',
-                    'dataemissao': dt_15_dias_atras,
-                    'especiedodocumento': 'NFE',
-                    'pessoa': 'CLIENTE NAO VERIFICAR 2',
+                    'pessoa': 'CLIENTE ANTIGO QUE DEVE SER APAGADO',
                     'recebido': 0.0,
-                    'aberto': 20000.0,
-                    'vendedor': 'ALC - MARIA SOUZA',
-                    'documentoparcela': '222333/1',
-                    'numeroproposta': 200002,
-                    'descricao_veiculo_tipo_venda': 'FINANCIAMENTO'
-                },
-                {
-                    'empresa': 'MOTOCAR',
-                    'emissao': f'{dt_15_dias_atras}T00:00:00',
-                    'vencimento': f'{dt_5_dias_atras}T00:00:00',
-                    'dataemissao': dt_15_dias_atras,
-                    'especiedodocumento': 'NFE',
-                    'pessoa': 'CLIENTE LOJA PENDENTE 3',
-                    'recebido': 0.0,
-                    'aberto': 18000.0,
-                    'vendedor': 'LOJANOVA99 - CARLOS TESTE',
-                    'documentoparcela': '333444/1',
-                    'numeroproposta': 300003,
-                    'descricao_veiculo_tipo_venda': 'CONSORCIO'
-                },
-                {
-                    'empresa': 'MOTOCAR - MGA',
-                    'emissao': f'{dt_5_dias_atras}T00:00:00',
-                    'vencimento': f'{dt_5_dias_atras}T00:00:00',
-                    'dataemissao': dt_5_dias_atras,
-                    'especiedodocumento': 'NFE',
-                    'pessoa': 'CLIENTE SEM HIFEN NO VENDEDOR 4',
-                    'recebido': 1000.0,
-                    'aberto': 12000.0,
-                    'vendedor': 'VENDEDOR DIRETO SEM SIGLA',
-                    'documentoparcela': '5104/1',
-                    'numeroproposta': 11058,
-                    'descricao_veiculo_tipo_venda': 'VENDA DIRETA'
-                }
-            ]
+                    'aberto': 99999.0,
+                    'vendedor': 'SNS - VENDEDOR ANTIGO',
+                    'documentoparcela': '11111/1',
+                    'numeroproposta': 11111,
+                    'descricao_veiculo_tipo_venda': 'VENDA'
+                }]
+                populate_financeiro(conn, lixo_inicial)
+                populate_base(conn, [])
+                populate_consolidado(conn)
 
-            novos_base = [
-                {
-                    'chassi': '9C2KC0001',
-                    'pessoa': 'CLIENTE VERIFICAR 1',
-                    'vendedor': 'SNS - JOAO DA SILVA',
-                    'datachegada': f'{dt_15_dias_atras}T08:00:00',
-                    'docfiscal': '144678',
-                    'proposta': 116587,
-                    'quantidade': 1,
-                    'empresa': 'MOTOCAR',
-                    'datahoraexpedicao': '2026-11-03T10:30:00'
-                },
-                {
-                    'chassi': '9C2KC0002',
-                    'pessoa': 'CLIENTE NAO VERIFICAR 2',
-                    'vendedor': 'ALC - MARIA SOUZA',
-                    'datachegada': f'{dt_5_dias_atras}T08:00:00',
-                    'docfiscal': '222333',
-                    'proposta': 200002,
-                    'quantidade': 1,
-                    'empresa': 'MOTOCAR',
-                    'datahoraexpedicao': '1899-12-31T00:00:00'
-                }
-            ]
+                cur = conn.cursor()
+                cur.execute("SELECT COUNT(*) FROM motos_em_aberto_consolidado WHERE pessoa = 'CLIENTE ANTIGO QUE DEVE SER APAGADO';")
+                self.assertEqual(cur.fetchone()[0], 1)
 
-            populate_financeiro(conn, novos_fin)
-            populate_base(conn, novos_base)
-            populate_consolidado(conn)
+                novos_fin = [
+                    {
+                        'empresa': 'MOTOCAR',
+                        'emissao': f'{dt_15_dias_atras}T00:00:00',
+                        'vencimento': f'{dt_5_dias_atras}T00:00:00',
+                        'dataemissao': dt_15_dias_atras,
+                        'especiedodocumento': 'NFE',
+                        'pessoa': 'CLIENTE VERIFICAR 1',
+                        'recebido': 500.0,
+                        'aberto': 15000.0,
+                        'vendedor': 'SNS - JOAO DA SILVA',
+                        'documentoparcela': '144678/1 - NFE',
+                        'numeroproposta': 116587,
+                        'descricao_veiculo_tipo_venda': 'VENDA DIRETA'
+                    },
+                    {
+                        'empresa': 'MOTOCAR',
+                        'emissao': f'{dt_15_dias_atras}T00:00:00',
+                        'vencimento': f'{dt_5_dias_atras}T00:00:00',
+                        'dataemissao': dt_15_dias_atras,
+                        'especiedodocumento': 'NFE',
+                        'pessoa': 'CLIENTE NAO VERIFICAR 2',
+                        'recebido': 0.0,
+                        'aberto': 20000.0,
+                        'vendedor': 'ALC - MARIA SOUZA',
+                        'documentoparcela': '222333/1',
+                        'numeroproposta': 200002,
+                        'descricao_veiculo_tipo_venda': 'FINANCIAMENTO'
+                    },
+                    {
+                        'empresa': 'MOTOCAR',
+                        'emissao': f'{dt_15_dias_atras}T00:00:00',
+                        'vencimento': f'{dt_5_dias_atras}T00:00:00',
+                        'dataemissao': dt_15_dias_atras,
+                        'especiedodocumento': 'NFE',
+                        'pessoa': 'CLIENTE LOJA PENDENTE 3',
+                        'recebido': 0.0,
+                        'aberto': 18000.0,
+                        'vendedor': 'LOJANOVA99 - CARLOS TESTE',
+                        'documentoparcela': '333444/1',
+                        'numeroproposta': 300003,
+                        'descricao_veiculo_tipo_venda': 'CONSORCIO'
+                    },
+                    {
+                        'empresa': 'MOTOCAR - MGA',
+                        'emissao': f'{dt_5_dias_atras}T00:00:00',
+                        'vencimento': f'{dt_5_dias_atras}T00:00:00',
+                        'dataemissao': dt_5_dias_atras,
+                        'especiedodocumento': 'NFE',
+                        'pessoa': 'CLIENTE SEM HIFEN NO VENDEDOR 4',
+                        'recebido': 1000.0,
+                        'aberto': 12000.0,
+                        'vendedor': 'VENDEDOR DIRETO SEM SIGLA',
+                        'documentoparcela': '5104/1',
+                        'numeroproposta': 11058,
+                        'descricao_veiculo_tipo_venda': 'VENDA DIRETA'
+                    }
+                ]
 
-            conn.row_factory = sqlite3.Row
-            cur = conn.cursor()
+                novos_base = [
+                    {
+                        'chassi': '9C2KC0001',
+                        'pessoa': 'CLIENTE VERIFICAR 1',
+                        'vendedor': 'SNS - JOAO DA SILVA',
+                        'datachegada': f'{dt_15_dias_atras}T08:00:00',
+                        'docfiscal': '144678',
+                        'proposta': 116587,
+                        'quantidade': 1,
+                        'empresa': 'MOTOCAR',
+                        'datahoraexpedicao': '2026-11-03T10:30:00'
+                    },
+                    {
+                        'chassi': '9C2KC0002',
+                        'pessoa': 'CLIENTE NAO VERIFICAR 2',
+                        'vendedor': 'ALC - MARIA SOUZA',
+                        'datachegada': f'{dt_5_dias_atras}T08:00:00',
+                        'docfiscal': '222333',
+                        'proposta': 200002,
+                        'quantidade': 1,
+                        'empresa': 'MOTOCAR',
+                        'datahoraexpedicao': '1899-12-31T00:00:00'
+                    }
+                ]
 
-            # 1. Garante que a tabela anterior foi apagada
-            cur.execute("SELECT COUNT(*) FROM motos_em_aberto_consolidado WHERE pessoa = 'CLIENTE ANTIGO QUE DEVE SER APAGADO';")
-            self.assertEqual(cur.fetchone()[0], 0, "A carga anterior deve ser integralmente apagada antes da nova!")
+                populate_financeiro(conn, novos_fin)
+                populate_base(conn, novos_base)
+                populate_consolidado(conn)
 
-            cur.execute("SELECT COUNT(*) FROM motos_em_aberto_consolidado;")
-            self.assertEqual(cur.fetchone()[0], 4, "Devem existir exatamente os 4 novos registros.")
+                conn.row_factory = sqlite3.Row
+                cur = conn.cursor()
 
-            # 2. Valida Caso 1 (SNS -> Verificar, documento limpo, NF+pedido concatenado)
-            cur.execute("SELECT * FROM motos_em_aberto_consolidado WHERE numeroproposta = 116587;")
-            r1 = dict(cur.fetchone())
-            self.assertEqual(r1['loja_vendedor'], 'SNS')
-            self.assertEqual(r1['estado'], 'RJ')
-            self.assertEqual(r1['dias_emissao'], 15)
-            self.assertEqual(r1['dias_chegada'], 15)
-            self.assertEqual(r1['documento'], '144678/1')
-            self.assertEqual(r1['nf_pedido'], '144678/116587')
-            self.assertEqual(r1['dataexpedicao'], '03/11/2026')
-            self.assertEqual(r1['status'], 'Verificar')
+                # 1. Garante que a tabela anterior foi apagada
+                cur.execute("SELECT COUNT(*) FROM motos_em_aberto_consolidado WHERE pessoa = 'CLIENTE ANTIGO QUE DEVE SER APAGADO';")
+                self.assertEqual(cur.fetchone()[0], 0, "A carga anterior deve ser integralmente apagada antes da nova!")
 
-            # 3. Valida Caso 2 (ALC -> 15 dias emissão, mas apenas 5 dias chegada -> 'Não Verificar', data 1899 -> None)
-            cur.execute("SELECT * FROM motos_em_aberto_consolidado WHERE numeroproposta = 200002;")
-            r2 = dict(cur.fetchone())
-            self.assertEqual(r2['loja_vendedor'], 'ALC')
-            self.assertEqual(r2['dias_emissao'], 15)
-            self.assertEqual(r2['dias_chegada'], 5)
-            self.assertIsNone(r2['dataexpedicao'], "Datas 1899 devem ser convertidas para NULL.")
-            self.assertEqual(r2['status'], 'Não Verificar')
+                cur.execute("SELECT COUNT(*) FROM motos_em_aberto_consolidado;")
+                self.assertEqual(cur.fetchone()[0], 4, "Devem existir exatamente os 4 novos registros.")
 
-            # 4. Valida Caso 3 (Loja não mapeada -> PENDENTE DE/PARA)
-            cur.execute("SELECT * FROM motos_em_aberto_consolidado WHERE numeroproposta = 300003;")
-            r3 = dict(cur.fetchone())
-            self.assertEqual(r3['loja_vendedor'], 'LOJANOVA99')
-            self.assertEqual(r3['regiao'], 'PENDENTE DE/PARA')
-            self.assertEqual(r3['estado'], 'PENDENTE')
-            self.assertIsNone(r3['dias_chegada'])
-            self.assertEqual(r3['status'], 'Não Verificar')
+                # 2. Valida Caso 1 (SNS -> Verificar, documento limpo, NF+pedido concatenado)
+                cur.execute("SELECT * FROM motos_em_aberto_consolidado WHERE numeroproposta = 116587;")
+                r1 = dict(cur.fetchone())
+                self.assertEqual(r1['loja_vendedor'], 'SNS')
+                self.assertEqual(r1['estado'], 'RJ')
+                self.assertEqual(r1['dias_emissao'], 15)
+                self.assertEqual(r1['dias_chegada'], 15)
+                self.assertEqual(r1['documento'], '144678/1')
+                self.assertEqual(r1['nf_pedido'], '144678/116587')
+                self.assertEqual(r1['dataexpedicao'], '03/11/2026')
+                self.assertEqual(r1['status'], 'Verificar')
 
-            # 5. Valida Caso 4 (Fallback para sigla na coluna empresa quando vendedor não tem '-')
-            cur.execute("SELECT * FROM motos_em_aberto_consolidado WHERE numeroproposta = 11058;")
-            r4 = dict(cur.fetchone())
-            self.assertEqual(r4['loja_vendedor'], 'MGA')
-            self.assertEqual(r4['estado'], 'PR')
-            self.assertEqual(r4['nf_pedido'], '5104/11058')
+                # 3. Valida Caso 2 (ALC -> 15 dias emissão, mas apenas 5 dias chegada -> 'Não Verificar', data 1899 -> None)
+                cur.execute("SELECT * FROM motos_em_aberto_consolidado WHERE numeroproposta = 200002;")
+                r2 = dict(cur.fetchone())
+                self.assertEqual(r2['loja_vendedor'], 'ALC')
+                self.assertEqual(r2['dias_emissao'], 15)
+                self.assertEqual(r2['dias_chegada'], 5)
+                self.assertIsNone(r2['dataexpedicao'], "Datas 1899 devem ser convertidas para NULL.")
+                self.assertEqual(r2['status'], 'Não Verificar')
 
-            conn.close()
+                # 4. Valida Caso 3 (Loja não mapeada -> PENDENTE DE/PARA)
+                cur.execute("SELECT * FROM motos_em_aberto_consolidado WHERE numeroproposta = 300003;")
+                r3 = dict(cur.fetchone())
+                self.assertEqual(r3['loja_vendedor'], 'LOJANOVA99')
+                self.assertEqual(r3['regiao'], 'PENDENTE DE/PARA')
+                self.assertEqual(r3['estado'], 'PENDENTE')
+                self.assertIsNone(r3['dias_chegada'])
+                self.assertEqual(r3['status'], 'Não Verificar')
+
+                # 5. Valida Caso 4 (Fallback para sigla na coluna empresa quando vendedor não tem '-')
+                cur.execute("SELECT * FROM motos_em_aberto_consolidado WHERE numeroproposta = 11058;")
+                r4 = dict(cur.fetchone())
+                self.assertEqual(r4['loja_vendedor'], 'MGA')
+                self.assertEqual(r4['estado'], 'PR')
+                self.assertEqual(r4['nf_pedido'], '5104/11058')
+            finally:
+                conn.close()
 
     # =========================================================================
     # 3. AUDITORIA DO BANCO DE PRODUÇÃO (database/motocar.db)
@@ -397,3 +393,4 @@ class TestMotosEmAbertoSystem(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
+
