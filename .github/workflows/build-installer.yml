@@ -40,7 +40,15 @@ jobs:
       - name: Build MSI Installer with WiX Toolset
         shell: pwsh
         run: |
-          & "$env:USERPROFILE\.dotnet\tools\wix.exe" build wix/Package.wxs -arch x64 -d PublishDir=publish -o Setup-MotosEmAberto-v1.0.0.msi
+          $publishDir = (Resolve-Path "publish").Path
+          $logoIcon = (Resolve-Path "logo/icon.ico").Path
+          Write-Host "PublishDir absoluto: $publishDir"
+          Write-Host "LogoIcon absoluto: $logoIcon"
+          & "$env:USERPROFILE\.dotnet\tools\wix.exe" build wix/Package.wxs `
+            -arch x64 `
+            -d PublishDir="$publishDir" `
+            -d LogoIcon="$logoIcon" `
+            -o Setup-MotosEmAberto-v1.0.0.msi
 
       - name: Calculate SHA-256 Checksum
         shell: pwsh
@@ -56,7 +64,7 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "Iniciando instalacao silenciosa do pacote MSI..."
-          $process = Start-Process msiexec.exe -ArgumentList "/i Setup-MotosEmAberto-v1.0.0.msi /qn /norestart ALLUSERS=1 /log install.log" -Wait -PassThru
+          $process = Start-Process msiexec.exe -ArgumentList "/i Setup-MotosEmAberto-v1.0.0.msi /qn /norestart ALLUSERS=1 /l*v install.log" -Wait -PassThru
           Get-Content install.log -Tail 30
           if ($process.ExitCode -ne 0) {
             Write-Error "Falha na instalacao do MSI. Codigo de saida: $($process.ExitCode)"
