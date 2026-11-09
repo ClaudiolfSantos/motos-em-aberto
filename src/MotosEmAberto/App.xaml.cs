@@ -22,7 +22,7 @@ namespace MotosEmAberto
                         DatabaseService.EnsureDatabaseInitialized();
                         var filtros = DatabaseService.GetFiltros();
                         Console.WriteLine("✔ Smoke test executado com sucesso! Lojas mapeadas: " + filtros["lojas"]);
-                        Shutdown(0);
+                        Environment.Exit(0);
                         return;
                     }
                 }

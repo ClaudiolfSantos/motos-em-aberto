@@ -104,7 +104,12 @@ jobs:
         run: |
           $exePath = Join-Path $env:INSTALLED_DIR "MotosEmAberto.exe"
           Write-Host "Testando motor do aplicativo instalado em $exePath ..."
-          $proc = Start-Process -FilePath $exePath -ArgumentList "--smoke-test" -Wait -PassThru
+          $proc = Start-Process -FilePath $exePath -ArgumentList "--smoke-test" -PassThru
+          $finished = $proc.WaitForExit(15000)
+          if (-not $finished) {
+            Write-Warning "Processo nao finalizou em 15s. Encerrando forcadamente..."
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          }
           if ($proc.ExitCode -ne 0) {
             Write-Error "O motor do executavel falhou no smoke test com codigo: $($proc.ExitCode)"
             exit 1
