@@ -12,3 +12,4 @@
         <wv2:WebView2 Name="webView" />
     </Grid>
 </Window>
+

@@ -79,3 +79,4 @@ A cada push na branch `main` ou publicação de tag `v*`, o fluxo de trabalho au
 ## 🏢 Desenvolvido para
 **Motocar — Motos em Aberto**  
 Copyright © 2026 Motocar. Todos os direitos reservados.
+

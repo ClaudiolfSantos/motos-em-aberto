@@ -56,10 +56,10 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "Iniciando instalacao silenciosa do pacote MSI..."
-          $process = Start-Process msiexec.exe -ArgumentList "/i Setup-MotosEmAberto-v1.0.0.msi /qn /norestart /log install.log" -Wait -PassThru
+          $process = Start-Process msiexec.exe -ArgumentList "/i Setup-MotosEmAberto-v1.0.0.msi /qn /norestart ALLUSERS=1 /log install.log" -Wait -PassThru
+          Get-Content install.log -Tail 30
           if ($process.ExitCode -ne 0) {
             Write-Error "Falha na instalacao do MSI. Codigo de saida: $($process.ExitCode)"
-            Get-Content install.log -Tail 50
             exit 1
           }
           Write-Host "✔ MSI instalado com sucesso (ExitCode 0)."
@@ -67,21 +67,35 @@ jobs:
       - name: Smoke Test - Verify Installed Files
         shell: pwsh
         run: |
-          $installPath = "C:\Program Files\Motocar\Motos em Aberto"
-          $exePath = Join-Path $installPath "MotosEmAberto.exe"
-          Write-Host "Verificando se arquivos existem em $installPath ..."
-          if (-not (Test-Path $exePath)) {
-            Write-Error "O executavel $exePath nao foi encontrado apos a instalacao!"
+          $candidates = @(
+            "C:\Program Files\Motocar\Motos em Aberto",
+            "C:\Program Files (x86)\Motocar\Motos em Aberto",
+            "$env:LOCALAPPDATA\Programs\Motocar\Motos em Aberto"
+          )
+          $found = $null
+          foreach ($cand in $candidates) {
+            $testExe = Join-Path $cand "MotosEmAberto.exe"
+            if (Test-Path $testExe) {
+              $found = $cand
+              break
+            }
+          }
+
+          if (-not $found) {
+            Write-Error "O executavel MotosEmAberto.exe nao foi encontrado em nenhum local esperado! Candidatos: $($candidates -join '; ')"
+            Get-Content install.log -Tail 60
             exit 1
           }
-          Write-Host "✔ Executavel oficial encontrado: $exePath"
-          Get-ChildItem -Path $installPath -Recurse | Select-Object FullName
+
+          Write-Host "✔ Executavel oficial encontrado em: $found"
+          "INSTALLED_DIR=$found" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Get-ChildItem -Path $found -Recurse | Select-Object FullName
 
       - name: Smoke Test - Verify Executable Engine
         shell: pwsh
         run: |
-          $exePath = "C:\Program Files\Motocar\Motos em Aberto\MotosEmAberto.exe"
-          Write-Host "Testando motor do aplicativo instalado..."
+          $exePath = Join-Path $env:INSTALLED_DIR "MotosEmAberto.exe"
+          Write-Host "Testando motor do aplicativo instalado em $exePath ..."
           & "$exePath" --smoke-test
           if ($LASTEXITCODE -ne 0) {
             Write-Error "O motor do executavel falhou no smoke test com codigo: $LASTEXITCODE"

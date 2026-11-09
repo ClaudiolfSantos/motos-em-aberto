@@ -3,6 +3,7 @@
            Manufacturer="Motocar"
            Version="1.0.0"
            UpgradeCode="4C5E8D21-7A6F-4B90-8C83-82D7B481016A"
+           Scope="perMachine"
            Language="1046"
            Codepage="1252">
 
@@ -59,3 +60,4 @@
 
   </Package>
 </Wix>
+
