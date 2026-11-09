@@ -79,7 +79,7 @@ namespace MotosEmAberto.Services
 
             using (var cmd = conn.CreateCommand())
             {
-                cmd.CommandText = "SELECT DISTINCT tipo_venda FROM motos_em_aberto_consolidado WHERE tipo_venda IS NOT NULL AND tipo_venda != '' ORDER BY tipo_venda ASC;";
+                cmd.CommandText = "SELECT DISTINCT descricao_veiculo_tipo_venda FROM motos_em_aberto_consolidado WHERE descricao_veiculo_tipo_venda IS NOT NULL AND descricao_veiculo_tipo_venda != '' ORDER BY descricao_veiculo_tipo_venda ASC;";
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read()) tiposVenda.Add(reader.GetString(0));
             }
@@ -135,7 +135,7 @@ namespace MotosEmAberto.Services
 
             if (!string.IsNullOrEmpty(tipoVenda) && tipoVenda != "Todos")
             {
-                condicoes.Add("tipo_venda = @tipoVenda");
+                condicoes.Add("descricao_veiculo_tipo_venda = @tipoVenda");
                 parametros.Add(new SqliteParameter("@tipoVenda", tipoVenda));
             }
 
@@ -167,7 +167,7 @@ namespace MotosEmAberto.Services
                 ["valor_em_aberto"] = "aberto",
                 ["valor_recebido"] = "recebido",
                 ["documento"] = "documento",
-                ["data_expedicao"] = "data_expedicao",
+                ["data_expedicao"] = "dataexpedicao",
                 ["nf_pedido"] = "nf_pedido",
                 ["status"] = "status",
                 ["regiao"] = "regiao",
@@ -229,12 +229,12 @@ namespace MotosEmAberto.Services
                         aberto AS valor_em_aberto,
                         recebido AS valor_recebido,
                         documento,
-                        data_expedicao,
+                        dataexpedicao AS data_expedicao,
                         nf_pedido,
                         status,
                         regiao,
                         estado,
-                        tipo_venda
+                        descricao_veiculo_tipo_venda AS tipo_venda
                     FROM motos_em_aberto_consolidado
                     WHERE {whereClause}
                     ORDER BY {colunaSql} {direcaoSql};

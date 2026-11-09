@@ -298,7 +298,7 @@ namespace MotosEmAberto.Services
                     INSERT INTO motos_em_aberto_consolidado (
                         empresa, loja_vendedor, regiao, estado, nome_vendedor, vendedor,
                         pessoa, dias_chegada, dias_emissao, aberto, recebido,
-                        documento, data_expedicao, nf_pedido, status, tipo_venda
+                        documento, dataexpedicao, nf_pedido, status, descricao_veiculo_tipo_venda
                     )
                     SELECT 
                         f.empresa,
