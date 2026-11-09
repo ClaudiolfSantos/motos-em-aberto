@@ -8,9 +8,9 @@
     <ApplicationIcon>..\..\logo\icon.ico</ApplicationIcon>
     <AssemblyName>MotosEmAberto</AssemblyName>
     <RootNamespace>MotosEmAberto</RootNamespace>
-    <Version>1.0.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <Version>1.1.0</Version>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
     <Company>Motocar</Company>
     <Product>Motos em Aberto</Product>
     <Copyright>Copyright © 2026 Motocar</Copyright>

@@ -8,7 +8,7 @@ namespace MotosEmAberto.Services
 {
     public static class UpdateService
     {
-        public const string CurrentVersion = "1.0.0";
+        public const string CurrentVersion = "1.1.0";
         public const string GitHubRepo = "ClaudiolfSantos/motos-em-aberto";
 
         private static readonly HttpClient _httpClient = new HttpClient

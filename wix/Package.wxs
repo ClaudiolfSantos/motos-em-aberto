@@ -1,7 +1,7 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package Name="Motos em Aberto"
            Manufacturer="Motocar"
-           Version="1.0.0"
+           Version="1.1.0"
            UpgradeCode="4C5E8D21-7A6F-4B90-8C83-82D7B481016A"
            Scope="perMachine"
            Language="1046"
