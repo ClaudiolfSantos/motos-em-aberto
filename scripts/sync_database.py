@@ -267,8 +267,10 @@ def populate_base(conn: sqlite3.Connection, records: list):
     print(f"✔ Tabela 'motos_em_aberto_base': {len(batch)} registros inseridos.")
 
 def sync_de_para(conn: sqlite3.Connection):
-    """Lê a planilha de:para.xlsx e popula as tabelas de referência de_para_lojas e de_para_regioes."""
-    xlsx_path = os.path.join(os.path.dirname(__file__), '..', 'de:para.xlsx')
+    """Lê a planilha de_para.xlsx e popula as tabelas de referência de_para_lojas e de_para_regioes."""
+    xlsx_path = os.path.join(os.path.dirname(__file__), '..', 'de_para.xlsx')
+    if not os.path.exists(xlsx_path):
+        xlsx_path = os.path.join(os.path.dirname(__file__), '..', 'de:para.xlsx')
     if not os.path.exists(xlsx_path):
         print(f"⚠ Planilha {xlsx_path} não encontrada. Pulando sincronização do de-para.")
         return
