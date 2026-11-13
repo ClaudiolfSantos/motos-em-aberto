@@ -98,7 +98,13 @@ namespace MotosEmAberto.Services
                                 WHEN (dias_emissao >= 10 AND dias_chegada IS NOT NULL AND dias_chegada >= 10 AND status != 'Verificar')
                                   OR ((dias_emissao < 10 OR dias_chegada IS NULL OR dias_chegada < 10) AND status != 'Não Verificar')
                                 THEN 1 ELSE 0 END),
-                            SUM(CASE WHEN nf_pedido IS NULL OR INSTR(nf_pedido, '/') = 0 THEN 1 ELSE 0 END)
+                            SUM(CASE WHEN nf_pedido IS NULL OR INSTR(nf_pedido, '/') = 0 THEN 1 ELSE 0 END),
+                            SUM(CASE WHEN dataexpedicao IS NOT NULL AND NOT EXISTS (
+                                SELECT 1 FROM motos_em_aberto_base b
+                                WHERE b.empresa = motos_em_aberto_consolidado.empresa
+                                  AND (CASE WHEN INSTR(TRIM(REPLACE(b.docfiscal, 'NF-E', '')), '/') > 0 THEN SUBSTR(TRIM(REPLACE(b.docfiscal, 'NF-E', '')), 1, INSTR(TRIM(REPLACE(b.docfiscal, 'NF-E', '')), '/') - 1) || '/' || b.proposta ELSE TRIM(REPLACE(b.docfiscal, 'NF-E', '')) || '/' || b.proposta END) = motos_em_aberto_consolidado.nf_pedido
+                                  AND b.datahoraexpedicao IS NOT NULL AND TRIM(b.datahoraexpedicao) != '' AND b.datahoraexpedicao NOT LIKE '1899%'
+                            ) THEN 1 ELSE 0 END)
                         FROM motos_em_aberto_consolidado;
                     ";
                     using var reader = cmd.ExecuteReader();
@@ -109,12 +115,14 @@ namespace MotosEmAberto.Services
                         long invalidDates1899 = reader.GetInt64(2);
                         long brokenStatusRule = reader.GetInt64(3);
                         long brokenNfPedido = reader.GetInt64(4);
+                        long phantomExpedicao = reader.GetInt64(5);
 
                         Assert(totalRows > 0, $"Tabela consolidada populada ({totalRows} registros)");
                         Assert(emptyLojas == 0, "Regra de extração de sigla da loja (0 lojas vazias)");
                         Assert(invalidDates1899 == 0, "Regra de higienização de data 31/12/1899 (0 ocorrências)");
                         Assert(brokenStatusRule == 0, "Regra de validação 'Verificar' (dias_emissao >= 10 E dias_chegada >= 10) 100% consistente");
                         Assert(brokenNfPedido == 0, "Regra de formatação NF+pedido (documento/proposta) 100% consistente");
+                        Assert(phantomExpedicao == 0, "Integridade de Data Expedição por (empresa + NF+pedido) (0 datas fantasmas de outras filiais)");
                     }
                 }
 

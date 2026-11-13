@@ -215,6 +215,18 @@ class TestMotosEmAbertoSystem(unittest.TestCase):
                         'quantidade': 1,
                         'empresa': 'MOTOCAR',
                         'datahoraexpedicao': '1899-12-31T00:00:00'
+                    },
+                    {
+                        # Mesma proposta (200002) em OUTRA filial / outra NF: NÃO pode vazar data de expedição!
+                        'chassi': '9C2KC9999',
+                        'pessoa': 'CLIENTE OUTRA FILIAL MESMA PROPOSTA',
+                        'vendedor': 'MGA - OUTRO VENDEDOR',
+                        'datachegada': f'{dt_15_dias_atras}T08:00:00',
+                        'docfiscal': 'NF-E 999999/1',
+                        'proposta': 200002,
+                        'quantidade': 1,
+                        'empresa': 'PR-MGA',
+                        'datahoraexpedicao': '2026-11-05T14:20:00'
                     }
                 ]
 

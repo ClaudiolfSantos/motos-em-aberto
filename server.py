@@ -394,14 +394,28 @@ class MotocarHandler(BaseHTTPRequestHandler):
 
         # Ordenação
         order_by = "aberto DESC"
-        if ordem == 'dias_chao_desc':
-            order_by = "dias_chegada DESC NULLS LAST"
+        if ordem == 'aberto_asc':
+            order_by = "aberto ASC"
+        elif ordem == 'dias_chao_desc':
+            order_by = "CASE WHEN dias_chegada IS NULL THEN 1 ELSE 0 END ASC, dias_chegada DESC"
+        elif ordem == 'dias_chao_asc':
+            order_by = "CASE WHEN dias_chegada IS NULL THEN 1 ELSE 0 END ASC, dias_chegada ASC"
         elif ordem == 'dias_emissao_desc':
             order_by = "dias_emissao DESC"
+        elif ordem == 'dias_emissao_asc':
+            order_by = "dias_emissao ASC"
         elif ordem == 'pessoa_asc':
             order_by = "pessoa ASC"
+        elif ordem == 'pessoa_desc':
+            order_by = "pessoa DESC"
         elif ordem == 'loja_asc':
             order_by = "loja_vendedor ASC"
+        elif ordem == 'loja_desc':
+            order_by = "loja_vendedor DESC"
+        elif ordem == 'data_expedicao_desc':
+            order_by = "CASE WHEN dataexpedicao IS NULL OR dataexpedicao = '' THEN 1 ELSE 0 END ASC, substr(dataexpedicao,7,4)||substr(dataexpedicao,4,2)||substr(dataexpedicao,1,2) DESC"
+        elif ordem == 'data_expedicao_asc':
+            order_by = "CASE WHEN dataexpedicao IS NULL OR dataexpedicao = '' THEN 1 ELSE 0 END ASC, substr(dataexpedicao,7,4)||substr(dataexpedicao,4,2)||substr(dataexpedicao,1,2) ASC"
 
         # Registros
         dados_sql = f"""

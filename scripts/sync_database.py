@@ -33,8 +33,9 @@ def clean_json_newlines(s: str) -> str:
         if c == '"':
             in_quote = not in_quote
             res.append(c)
-        elif c == '\n' and in_quote:
-            res.append(' ')
+        elif c in ('\n', '\r') and in_quote:
+            if c == '\n':
+                res.append(' ')
         else:
             res.append(c)
     return ''.join(res)
@@ -394,17 +395,13 @@ def populate_consolidado(conn: sqlite3.Connection):
             
             -- Data Expedição
             CASE 
-                WHEN b.datahoraexpedicao IS NOT NULL AND b.datahoraexpedicao != '' AND b.datahoraexpedicao NOT LIKE '1899%'
+                WHEN b.datahoraexpedicao IS NOT NULL AND TRIM(b.datahoraexpedicao) != '' AND b.datahoraexpedicao NOT LIKE '1899%' AND b.datahoraexpedicao NOT LIKE '0001%'
                 THEN strftime('%d/%m/%Y', b.datahoraexpedicao)
                 ELSE NULL 
             END as dataexpedicao,
             
             -- NF+pedido (ex: 144678/116587)
-            CASE 
-                WHEN INSTR(f.documentoparcela, '/') > 0 
-                THEN SUBSTR(f.documentoparcela, 1, INSTR(f.documentoparcela, '/') - 1) || '/' || f.numeroproposta
-                ELSE f.documentoparcela || '/' || f.numeroproposta
-            END as nf_pedido,
+            t.nf_pedido,
             
             f.documentoparcela,
             f.numeroproposta,
@@ -414,13 +411,13 @@ def populate_consolidado(conn: sqlite3.Connection):
             CAST(julianday(date('now', 'localtime')) - julianday(date(f.emissao)) AS INTEGER) || ' dias (' || strftime('%d/%m/%Y', f.emissao) || ')' as info_dias_emissao,
             
             CASE 
-                WHEN b.datachegada IS NOT NULL AND b.datachegada != '' 
+                WHEN b.datachegada IS NOT NULL AND TRIM(b.datachegada) != '' 
                 THEN strftime('%d/%m/%Y', b.datachegada)
                 ELSE NULL 
             END as datachegada,
             
             CASE 
-                WHEN b.datachegada IS NOT NULL AND b.datachegada != '' 
+                WHEN b.datachegada IS NOT NULL AND TRIM(b.datachegada) != '' 
                 THEN CAST(julianday(date('now', 'localtime')) - julianday(date(b.datachegada)) AS INTEGER) || ' dias (' || strftime('%d/%m/%Y', b.datachegada) || ')'
                 ELSE 'Aguardando Chegada'
             END as info_dias_chegada,
@@ -428,7 +425,7 @@ def populate_consolidado(conn: sqlite3.Connection):
             -- Regra de Validação
             CASE 
                 WHEN (CAST(julianday(date('now', 'localtime')) - julianday(date(f.emissao)) AS INTEGER) >= 10)
-                 AND (b.datachegada IS NOT NULL AND b.datachegada != '' AND CAST(julianday(date('now', 'localtime')) - julianday(date(b.datachegada)) AS INTEGER) >= 10)
+                 AND (b.datachegada IS NOT NULL AND TRIM(b.datachegada) != '' AND CAST(julianday(date('now', 'localtime')) - julianday(date(b.datachegada)) AS INTEGER) >= 10)
                 THEN 'Verificar'
                 ELSE 'Não Verificar'
             END as status,
@@ -443,17 +440,31 @@ def populate_consolidado(conn: sqlite3.Connection):
                     WHEN f_inner.vendedor LIKE '%-%' THEN TRIM(SUBSTR(f_inner.vendedor, 1, INSTR(f_inner.vendedor, '-') - 1))
                     WHEN f_inner.empresa LIKE '%-%' THEN TRIM(SUBSTR(f_inner.empresa, INSTR(f_inner.empresa, '-') + 1))
                     ELSE 'OUTROS'
-                END as loja_vendedor
+                END as loja_vendedor,
+                CASE 
+                    WHEN INSTR(TRIM(f_inner.documentoparcela), '/') > 0 
+                    THEN SUBSTR(TRIM(f_inner.documentoparcela), 1, INSTR(TRIM(f_inner.documentoparcela), '/') - 1) || '/' || f_inner.numeroproposta
+                    WHEN INSTR(TRIM(f_inner.documentoparcela), ' - ') > 0 
+                    THEN SUBSTR(TRIM(f_inner.documentoparcela), 1, INSTR(TRIM(f_inner.documentoparcela), ' - ') - 1) || '/' || f_inner.numeroproposta
+                    ELSE TRIM(f_inner.documentoparcela) || '/' || f_inner.numeroproposta
+                END as nf_pedido
             FROM motos_em_aberto_financeiro f_inner
         ) t ON f.id = t.fid
         LEFT JOIN (
             SELECT 
-                proposta, 
-                MAX(datachegada) as datachegada,
-                MAX(datahoraexpedicao) as datahoraexpedicao
-            FROM motos_em_aberto_base
-            GROUP BY proposta
-        ) b ON f.numeroproposta = b.proposta
+                b_inner.empresa,
+                CASE 
+                    WHEN INSTR(TRIM(REPLACE(b_inner.docfiscal, 'NF-E', '')), '/') > 0 
+                    THEN SUBSTR(TRIM(REPLACE(b_inner.docfiscal, 'NF-E', '')), 1, INSTR(TRIM(REPLACE(b_inner.docfiscal, 'NF-E', '')), '/') - 1) || '/' || b_inner.proposta
+                    WHEN INSTR(TRIM(REPLACE(b_inner.docfiscal, 'NF-E', '')), ' - ') > 0 
+                    THEN SUBSTR(TRIM(REPLACE(b_inner.docfiscal, 'NF-E', '')), 1, INSTR(TRIM(REPLACE(b_inner.docfiscal, 'NF-E', '')), ' - ') - 1) || '/' || b_inner.proposta
+                    ELSE TRIM(REPLACE(b_inner.docfiscal, 'NF-E', '')) || '/' || b_inner.proposta
+                END as nf_pedido,
+                MAX(CASE WHEN b_inner.datachegada IS NOT NULL AND TRIM(b_inner.datachegada) != '' AND b_inner.datachegada NOT LIKE '1899%' AND b_inner.datachegada NOT LIKE '0001%' THEN b_inner.datachegada ELSE NULL END) as datachegada,
+                MAX(CASE WHEN b_inner.datahoraexpedicao IS NOT NULL AND TRIM(b_inner.datahoraexpedicao) != '' AND b_inner.datahoraexpedicao NOT LIKE '1899%' AND b_inner.datahoraexpedicao NOT LIKE '0001%' THEN b_inner.datahoraexpedicao ELSE NULL END) as datahoraexpedicao
+            FROM motos_em_aberto_base b_inner
+            GROUP BY b_inner.empresa, nf_pedido
+        ) b ON b.empresa = f.empresa AND b.nf_pedido = t.nf_pedido
         LEFT JOIN de_para_lojas dp ON UPPER(t.loja_vendedor) = dp.loja;
     """)
     conn.commit()

@@ -18,10 +18,11 @@ namespace MotosEmAberto.Services
         {
             Directory.CreateDirectory(AppDataDir);
 
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string seedDb = Path.Combine(baseDir, "database", "motocar.db");
+
             if (!File.Exists(DatabasePath))
             {
-                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                string seedDb = Path.Combine(baseDir, "database", "motocar.db");
                 if (File.Exists(seedDb))
                 {
                     File.Copy(seedDb, DatabasePath, true);
@@ -31,6 +32,65 @@ namespace MotosEmAberto.Services
                     }
                     catch { }
                 }
+            }
+            else if (File.Exists(seedDb) && File.GetLastWriteTimeUtc(seedDb) > File.GetLastWriteTimeUtc(DatabasePath))
+            {
+                // Preserva mapeamentos De/Para customizados antes de atualizar a base seed mais recente
+                var customDePara = new List<(string Loja, string Regiao, string Estado)>();
+                try
+                {
+                    using var oldConn = GetConnection();
+                    using var cmd = oldConn.CreateCommand();
+                    cmd.CommandText = "SELECT loja, regiao, estado FROM de_para_lojas;";
+                    using var reader = cmd.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        customDePara.Add((reader.GetString(0), reader.GetString(1), reader.GetString(2)));
+                    }
+                }
+                catch { }
+
+                try
+                {
+                    SqliteConnection.ClearAllPools();
+                    string walPath = DatabasePath + "-wal";
+                    string shmPath = DatabasePath + "-shm";
+                    if (File.Exists(walPath)) File.Delete(walPath);
+                    if (File.Exists(shmPath)) File.Delete(shmPath);
+                    File.Copy(seedDb, DatabasePath, true);
+                    File.SetAttributes(DatabasePath, FileAttributes.Normal);
+
+                    if (customDePara.Count > 0)
+                    {
+                        using var newConn = GetConnection();
+                        using var trans = newConn.BeginTransaction();
+                        using var cmd = newConn.CreateCommand();
+                        cmd.Transaction = trans;
+                        cmd.CommandText = "INSERT OR REPLACE INTO de_para_lojas (loja, regiao, estado) VALUES (@l, @r, @e);";
+                        var pL = cmd.Parameters.Add("@l", SqliteType.Text);
+                        var pR = cmd.Parameters.Add("@r", SqliteType.Text);
+                        var pE = cmd.Parameters.Add("@e", SqliteType.Text);
+                        foreach (var item in customDePara)
+                        {
+                            pL.Value = item.Loja;
+                            pR.Value = item.Regiao;
+                            pE.Value = item.Estado;
+                            cmd.ExecuteNonQuery();
+                        }
+                        trans.Commit();
+                    }
+                }
+                catch { }
+            }
+
+            // Re-consolida sempre na inicialização para garantir regras de cruzamento (empresa + NF+pedido) e datas atualizadas
+            if (File.Exists(DatabasePath))
+            {
+                try
+                {
+                    SyncService.Consolidate();
+                }
+                catch { }
             }
         }
 
@@ -156,14 +216,28 @@ namespace MotosEmAberto.Services
             string ordemClean = (ordem ?? "aberto_desc").Trim().ToLowerInvariant();
             if (ordemClean == "aberto_desc")
                 orderBySql = "aberto DESC";
+            else if (ordemClean == "aberto_asc")
+                orderBySql = "aberto ASC";
             else if (ordemClean == "dias_chao_desc")
                 orderBySql = "CASE WHEN dias_chegada IS NULL THEN 1 ELSE 0 END ASC, dias_chegada DESC";
+            else if (ordemClean == "dias_chao_asc")
+                orderBySql = "CASE WHEN dias_chegada IS NULL THEN 1 ELSE 0 END ASC, dias_chegada ASC";
             else if (ordemClean == "dias_emissao_desc")
                 orderBySql = "dias_emissao DESC";
+            else if (ordemClean == "dias_emissao_asc")
+                orderBySql = "dias_emissao ASC";
             else if (ordemClean == "pessoa_asc")
                 orderBySql = "pessoa ASC";
+            else if (ordemClean == "pessoa_desc")
+                orderBySql = "pessoa DESC";
             else if (ordemClean == "loja_asc")
                 orderBySql = "loja_vendedor ASC";
+            else if (ordemClean == "loja_desc")
+                orderBySql = "loja_vendedor DESC";
+            else if (ordemClean == "data_expedicao_desc")
+                orderBySql = "CASE WHEN dataexpedicao IS NULL OR dataexpedicao = '' THEN 1 ELSE 0 END ASC, substr(dataexpedicao,7,4)||substr(dataexpedicao,4,2)||substr(dataexpedicao,1,2) DESC";
+            else if (ordemClean == "data_expedicao_asc")
+                orderBySql = "CASE WHEN dataexpedicao IS NULL OR dataexpedicao = '' THEN 1 ELSE 0 END ASC, substr(dataexpedicao,7,4)||substr(dataexpedicao,4,2)||substr(dataexpedicao,1,2) ASC";
             else
             {
                 var mapaColunas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
